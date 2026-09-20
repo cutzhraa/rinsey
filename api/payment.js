@@ -1,11 +1,14 @@
 import midtransClient from 'midtrans-client'
 
 export default async function handler(req, res) {
-  // Setting CORS
-  res.setHeader('Access-Control-Allow-Credentials', true)
+  // CORS Headers
+  res.setHeader('Access-Control-Allow-Credentials', 'true')
   res.setHeader('Access-Control-Allow-Origin', '*')
-  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,POST')
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
+  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT')
+  res.setHeader(
+    'Access-Control-Allow-Headers',
+    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
+  )
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end()
@@ -16,7 +19,14 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { order_id, gross_amount, customer_name, customer_phone } = req.body
+    // Parse body jika berupa string
+    const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body
+    const { order_id, gross_amount, customer_name, customer_phone } = body || {}
+
+    const amount = Math.round(Number(gross_amount))
+    if (!amount || amount <= 0) {
+      return res.status(400).json({ status: 'error', message: 'Nominal transaksi tidak valid' })
+    }
 
     const snap = new midtransClient.Snap({
       isProduction: false,
@@ -26,8 +36,8 @@ export default async function handler(req, res) {
 
     const parameter = {
       transaction_details: {
-        order_id: `${order_id}-${Date.now()}`,
-        gross_amount: Math.round(Number(gross_amount))
+        order_id: `${order_id || 'ORDER'}-${Date.now()}`,
+        gross_amount: amount
       },
       customer_details: {
         first_name: customer_name || 'Pelanggan Laundry',
@@ -39,7 +49,10 @@ export default async function handler(req, res) {
     const transaction = await snap.createTransaction(parameter)
     return res.status(200).json({ status: 'success', token: transaction.token })
   } catch (error) {
-    console.error('Midtrans Error:', error)
-    return res.status(500).json({ status: 'error', message: error.message })
+    console.error('Vercel Midtrans Serverless Error:', error)
+    return res.status(500).json({ 
+      status: 'error', 
+      message: error.message || 'Internal Server Error' 
+    })
   }
 }
