@@ -4,16 +4,19 @@ import { supabase } from './lib/supabase'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import PelangganPage from './pages/Pelanggan'
+import TransaksiPage from './pages/Transaksi' // <-- INI YANG TADI LUPA DI-IMPORT!
 import Layout from './components/Layout'
 
 export default function App() {
   const [session, setSession] = useState(null)
   const [loading, setLoading] = useState(true)
+
   useEffect(() => {
-    supabase.auth.getSession().then(({data})=> { setSession(data.session); setLoading(false) })
-    supabase.auth.onAuthStateChange((_e, s)=> setSession(s))
+    supabase.auth.getSession().then(({ data }) => { setSession(data.session); setLoading(false) })
+    supabase.auth.onAuthStateChange((_e, s) => setSession(s))
   }, [])
-  if(loading) return <p>Loading...</p>
+
+  if (loading) return <p style={{ padding: '20px' }}>Loading...</p>
 
   return (
     <BrowserRouter>
@@ -21,6 +24,7 @@ export default function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/" element={session ? <Layout><Dashboard /></Layout> : <Navigate to="/login" />} />
         <Route path="/pelanggan" element={session ? <Layout><PelangganPage /></Layout> : <Navigate to="/login" />} />
+        <Route path="/transaksi" element={session ? <Layout><TransaksiPage /></Layout> : <Navigate to="/login" />} />
       </Routes>
     </BrowserRouter>
   )
