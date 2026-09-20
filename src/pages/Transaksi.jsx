@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import axios from 'axios'
 
 export default function TransaksiPage() {
   const [orders, setOrders] = useState([])
@@ -38,6 +39,46 @@ export default function TransaksiPage() {
   const selectedService = services.find(s => s.id === form.service_id)
   const calculatedTotal = selectedService ? (selectedService.price * Number(form.weight || 0)) : 0
 
+  // Function Panggil Pop-up Payment Midtrans Snap
+  const triggerMidtransPayment = async (order) => {
+    try {
+      // 1. Minta Snap Token dari Backend Node.js
+      const response = await axios.post('http://localhost:5000/api/payment/create', {
+        order_id: order.invoice_no || `RINSEY-${order.id}`,
+        gross_amount: order.total_price,
+        customer_name: order.customers?.name || 'Pelanggan Laundry',
+        customer_phone: order.customers?.phone || ''
+      })
+
+      const { token } = response.data
+
+      // 2. Tampilkan Modal Snap Midtrans
+      if (window.snap) {
+        window.snap.pay(token, {
+          onSuccess: async function (result) {
+            alert('Pembayaran Midtrans Berhasil!')
+            await supabase.from('orders').update({ payment_status: 'lunas' }).eq('id', order.id)
+            setOrders(prev => prev.map(item => item.id === order.id ? { ...item, payment_status: 'lunas' } : item))
+          },
+          onPending: function (result) {
+            alert('Menunggu Pembayaran...')
+          },
+          onError: function (result) {
+            alert('Pembayaran Gagal!')
+          },
+          onClose: function () {
+            console.log('Widget pembayaran ditutup')
+          }
+        })
+      } else {
+        alert('Script Midtrans belum dimuat di index.html!')
+      }
+    } catch (error) {
+      console.error('Midtrans payment error:', error)
+      alert('Gagal menghubungkan ke server pembayaran Midtrans')
+    }
+  }
+
   // Handle Simpan Order Baru
   const handleCreateOrder = async (e) => {
     e.preventDefault()
@@ -54,7 +95,6 @@ export default function TransaksiPage() {
       return
     }
 
-    // Generate Invoice Number sederhana (misal: INV-20260920-XXXX)
     const invNo = `INV-${Date.now().toString().slice(-6)}`
 
     const payload = {
@@ -69,29 +109,30 @@ export default function TransaksiPage() {
       payment_method: form.payment_method
     }
 
-    const { data, error } = await supabase.from('orders').insert([payload]).select('*, customers(name, phone), services(name, unit, price)')
+    const { data, error } = await supabase
+      .from('orders')
+      .insert([payload])
+      .select('*, customers(name, phone), services(name, unit, price)')
 
     setLoading(false)
     if (error) {
       alert('Gagal membuat transaksi: ' + error.message)
     } else {
-      setOrders([data[0], ...orders])
+      const newOrder = data[0]
+      setOrders([newOrder, ...orders])
       setShowAdd(false)
       setForm({ customer_id: '', service_id: '', weight: 1, payment_status: 'belum', payment_method: 'cash' })
-      alert('Transaksi berhasil dibuat!')
+
+      // Jika metode bayar QRIS & belum lunas -> Panggil Pop-up Midtrans otomatis!
+      if (newOrder.payment_method === 'qris' && newOrder.payment_status === 'belum') {
+        triggerMidtransPayment(newOrder)
+      } else {
+        alert('Transaksi berhasil dibuat!')
+      }
     }
   }
 
-  // Handle Update Status Transaksi
-  const handleUpdateStatus = async (id, newStatus) => {
-    const { error } = await supabase.from('orders').update({ status: newStatus, updated_at: new Date() }).eq('id', id)
-    if (error) alert(error.message)
-    else {
-      setOrders(orders.map(o => o.id === id ? { ...o, status: newStatus } : o))
-    }
-  }
-
-  // Handle Update Status Bayar
+  // Handle Toggle Payment Status Manual
   const handleTogglePayment = async (o) => {
     const nextPayment = o.payment_status === 'lunas' ? 'belum' : 'lunas'
     const { error } = await supabase.from('orders').update({ payment_status: nextPayment }).eq('id', o.id)
@@ -105,7 +146,6 @@ export default function TransaksiPage() {
   const sendWhatsAppReceipt = (o) => {
     if (!o.customers?.phone) return alert('Nomor HP pelanggan tidak ditemukan!')
     
-    // Format nomor WA Indonesia (ubah 08... jadi 628...)
     let phone = o.customers.phone.trim()
     if (phone.startsWith('0')) phone = '62' + phone.slice(1)
 
@@ -115,9 +155,9 @@ export default function TransaksiPage() {
       `Pelanggan   : ${o.customers?.name}\n` +
       `Layanan     : ${o.services?.name}\n` +
       `Jumlah/Berat: ${o.weight} ${o.services?.unit || 'kg'}\n` +
+      `Metode Bayar: ${o.payment_method?.toUpperCase()}\n` +
       `Total Bayar : Rp ${o.total_price?.toLocaleString('id-ID')}\n` +
       `Status Bayar: ${o.payment_status?.toUpperCase()}\n` +
-      `Status Cucian: ${o.status?.toUpperCase()}\n` +
       `--------------------------------\n` +
       `Terima kasih telah mempercayakan cucian Anda di Rinsey Laundry! 🧺`
 
@@ -130,20 +170,9 @@ export default function TransaksiPage() {
     o.invoice_no?.toLowerCase().includes(search.toLowerCase())
   )
 
-  const getStatusColor = (st) => {
-    switch (st) {
-      case 'masuk': return { bg: '#FEF3C7', color: '#D97706' }
-      case 'dicuci': return { bg: '#E0F2FE', color: '#0284C7' }
-      case 'disetrika': return { bg: '#F3E8FF', color: '#9333EA' }
-      case 'selesai': return { bg: '#D1FAE5', color: '#059669' }
-      case 'diambil': return { bg: '#F1F5F9', color: '#64748B' }
-      default: return { bg: '#F1F5F9', color: '#64748B' }
-    }
-  }
-
   return (
     <div>
-      {/* HEADER & BTN */}
+      {/* HEADER */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
           <h1 style={{ fontSize: '28px', fontWeight: '800', color: '#111' }}>Transaksi</h1>
@@ -209,6 +238,20 @@ export default function TransaksiPage() {
               />
             </div>
 
+            {/* METODE PEMBAYARAN */}
+            <div>
+              <label style={{ fontSize: '12px', fontWeight: '700', color: '#64748b' }}>METODE PEMBAYARAN</label>
+              <select
+                value={form.payment_method}
+                onChange={e => setForm({ ...form, payment_method: e.target.value })}
+                style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #e2e8f0', marginTop: '4px' }}
+              >
+                <option value="cash">Cash / Tunai</option>
+                <option value="qris">QRIS (GoPay, OVO, ShopeePay, M-Banking)</option>
+                <option value="transfer">Bank Transfer</option>
+              </select>
+            </div>
+
             {/* STATUS BAYAR */}
             <div>
               <label style={{ fontSize: '12px', fontWeight: '700', color: '#64748b' }}>STATUS PEMBAYARAN</label>
@@ -250,82 +293,65 @@ export default function TransaksiPage() {
 
       {/* DAFTAR TRANSAKSI TABLE / CARDS */}
       <div style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-        {filteredOrders.length === 0 ? (
-          <div style={{ background: 'white', padding: '30px', textAlign: 'center', borderRadius: '16px', color: '#94a3b8' }}>
-            Belum ada transaksi ditemukan.
-          </div>
-        ) : (
-          filteredOrders.map(o => {
-            const badge = getStatusColor(o.status)
-            return (
-              <div key={o.id} style={{ background: 'white', padding: '16px 20px', borderRadius: '16px', border: '1px solid #eef2f7', display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
-                {/* INFO UTAMA */}
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ fontWeight: '800', fontSize: '15px', color: '#111' }}>{o.invoice_no || 'INV-000'}</span>
-                    <span style={{ background: badge.bg, color: badge.color, padding: '2px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: '800', textTransform: 'uppercase' }}>
-                      {o.status}
-                    </span>
-                  </div>
-                  <div style={{ fontSize: '14px', fontWeight: '700', color: '#334155', marginTop: '4px' }}>
-                    👤 {o.customers?.name || 'Pelanggan Umum'} <span style={{ color: '#94a3b8', fontWeight: '400' }}>({o.customers?.phone})</span>
-                  </div>
-                  <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>
-                    📦 {o.services?.name || 'Paket Custom'} • {o.weight} {o.services?.unit || 'kg'}
-                  </div>
-                </div>
-
-                {/* HARGA & STATUS BAYAR */}
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: '16px', fontWeight: '800', color: '#111' }}>
-                    Rp {o.total_price?.toLocaleString('id-ID')}
-                  </div>
-                  <button
-                    onClick={() => handleTogglePayment(o)}
-                    style={{
-                      marginTop: '4px',
-                      background: o.payment_status === 'lunas' ? '#D1FAE5' : '#FEE2E2',
-                      color: o.payment_status === 'lunas' ? '#059669' : '#DC2626',
-                      border: 'none',
-                      padding: '4px 10px',
-                      borderRadius: '8px',
-                      fontSize: '11px',
-                      fontWeight: '800',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    {o.payment_status === 'lunas' ? '✓ LUNAS' : '✗ BELUM BAYAR'}
-                  </button>
-                </div>
-
-                {/* ACTION BUTTONS (UPDATE STATUS & WA) */}
-                <div style={{ display: 'flex', gap: '8px', alignItems: 'center', width: '100%', borderTop: '1px solid #f8fafc', paddingTop: '10px', justifyContent: 'space-between' }}>
-                  <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                    <span style={{ fontSize: '12px', color: '#94a3b8', fontWeight: '600' }}>Ubah Status:</span>
-                    <select
-                      value={o.status}
-                      onChange={e => handleUpdateStatus(o.id, e.target.value)}
-                      style={{ padding: '6px 10px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}
-                    >
-                      <option value="masuk">Masuk</option>
-                      <option value="dicuci">Dicuci</option>
-                      <option value="disetrika">Disetrika</option>
-                      <option value="selesai">Selesai</option>
-                      <option value="diambil">Diambil</option>
-                    </select>
-                  </div>
-
-                  <button
-                    onClick={() => sendWhatsAppReceipt(o)}
-                    style={{ background: '#25D366', color: 'white', border: 'none', padding: '8px 14px', borderRadius: '10px', fontWeight: '700', fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
-                  >
-                    💬 Kirim WA Struk
-                  </button>
-                </div>
+        {filteredOrders.map(o => (
+          <div key={o.id} style={{ background: 'white', padding: '16px 20px', borderRadius: '16px', border: '1px solid #eef2f7', display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontWeight: '800', fontSize: '15px', color: '#111' }}>{o.invoice_no || 'INV-000'}</span>
+                <span style={{ background: '#F1F5F9', color: '#475569', padding: '2px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: '800', textTransform: 'uppercase' }}>
+                  {o.payment_method || 'CASH'}
+                </span>
               </div>
-            )
-          })
-        )}
+              <div style={{ fontSize: '14px', fontWeight: '700', color: '#334155', marginTop: '4px' }}>
+                👤 {o.customers?.name || 'Pelanggan Umum'}
+              </div>
+              <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>
+                📦 {o.services?.name} • {o.weight} {o.services?.unit || 'kg'}
+              </div>
+            </div>
+
+            <div style={{ textAlign: 'right' }}>
+              <div style={{ fontSize: '16px', fontWeight: '800', color: '#111' }}>
+                Rp {o.total_price?.toLocaleString('id-ID')}
+              </div>
+              <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end', marginTop: '4px' }}>
+                {o.payment_method === 'qris' && o.payment_status === 'belum' && (
+                  <button
+                    onClick={() => triggerMidtransPayment(o)}
+                    style={{ background: '#4361EE', color: 'white', border: 'none', padding: '4px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: '700', cursor: 'pointer' }}
+                  >
+                    💳 Bayar Midtrans
+                  </button>
+                )}
+                <button
+                  onClick={() => handleTogglePayment(o)}
+                  style={{
+                    background: o.payment_status === 'lunas' ? '#D1FAE5' : '#FEE2E2',
+                    color: o.payment_status === 'lunas' ? '#059669' : '#DC2626',
+                    border: 'none',
+                    padding: '4px 10px',
+                    borderRadius: '8px',
+                    fontSize: '11px',
+                    fontWeight: '800',
+                    cursor: 'pointer'
+                  }}
+                >
+                  {o.payment_status === 'lunas' ? '✓ LUNAS' : '✗ BELUM BAYAR'}
+                </button>
+              </div>
+            </div>
+
+            {/* ACTION BUTTONS */}
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', width: '100%', borderTop: '1px solid #f8fafc', paddingTop: '10px', justifyContent: 'space-between' }}>
+              <button
+                onClick={() => sendWhatsAppReceipt(o)}
+                style={{ background: '#25D366', color: 'white', border: 'none', padding: '8px 14px', borderRadius: '10px', fontWeight: '700', fontSize: '12px', cursor: 'pointer', marginLeft: 'auto' }}
+              >
+                💬 Kirim WA Struk
+              </button>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   )
