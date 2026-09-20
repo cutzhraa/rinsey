@@ -3,8 +3,8 @@ import { supabase } from '../lib/supabase'
 import { useNavigate } from 'react-router-dom'
 
 export default function Login() {
-  const [email, setEmail] = useState('admin@cutzhraa.com')
-  const [password, setPassword] = useState('admin123')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const nav = useNavigate()
 
@@ -29,7 +29,7 @@ export default function Login() {
       }}>
         <div style={{textAlign:'center', marginBottom:'24px'}}>
           <div style={{fontSize:'40px'}}>🧺</div>
-          <h2 style={{margin:'8px 0 4px', fontWeight:'800', color:'#111827'}}>Cutzhraa Laundry</h2>
+          <h2 style={{margin:'8px 0 4px', fontWeight:'800', color:'#111827'}}>Rinsey Laundry</h2>
           <p style={{margin:0, color:'#9ca3af', fontSize:'14px'}}>Masuk untuk kelola cucian</p>
         </div>
 
@@ -62,9 +62,9 @@ export default function Login() {
           </button>
         </form>
 
-        <p style={{textAlign:'center', fontSize:'12px', color:'#9ca3af', marginTop:'20px'}}>
+        {/* <p style={{textAlign:'center', fontSize:'12px', color:'#9ca3af', marginTop:'20px'}}>
           Demo: admin@cutzhraa.com / admin123
-        </p>
+        </p> */}
       </div>
     </div>
   )
