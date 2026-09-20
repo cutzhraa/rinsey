@@ -1,83 +1,60 @@
-import { useState } from 'react'
-import { LayoutDashboard, Users, Scissors, Package, LogOut, Bell, ChevronLeft, ChevronRight } from 'lucide-react'
-import { supabase } from '../lib/supabase'
-import { useNavigate, Link, useLocation } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { NavLink, useLocation } from 'react-router-dom'
 
-export default function Layout({ children }) {
-  const nav = useNavigate()
-  const loc = useLocation()
-  const [collapsed, setCollapsed] = useState(false)
-  
-  const menu = [
-    { path:'/', label:'Dashboard', icon: LayoutDashboard },
-    { path:'/pelanggan', label:'Pelanggan', icon: Users },
-    { path:'/layanan', label:'Layanan', icon: Scissors },
-    { path:'/transaksi', label:'Transaksi', icon: Package },
-  ]
+export default function Layout({ children }){
+  const [open, setOpen] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
+  const location = useLocation()
+
+  useEffect(()=>{
+    const check = () => setIsMobile(window.innerWidth < 768)
+    check()
+    window.addEventListener('resize', check)
+    return ()=>window.removeEventListener('resize', check)
+  }, [])
+
+  useEffect(()=>{ if(isMobile) setOpen(false) }, [location.pathname])
 
   return (
-    <div style={{minHeight:'100vh', background:'#f8fafc', fontFamily:'Inter, sans-serif'}}>
-      {/* NAVBAR ATAS - BERSIH */}
-      <div style={{height:'64px', background:'white', borderBottom:'1px solid #eef2f7', display:'flex', alignItems:'center', justifyContent:'space-between', padding:'0 24px', position:'sticky', top:0, zIndex:10}}>
-        <h2 style={{fontWeight:'900', color:'#111', letterSpacing:'-1px', margin:0}}>RINSEY.</h2>
-        <div style={{display:'flex', alignItems:'center', gap:'16px'}}>
-          <Bell size={20} color="#94a3b8" />
-          <div style={{width:'32px', height:'32px', background:'black', borderRadius:'50%', color:'white', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:'700', fontSize:'13px'}}>R</div>
-        </div>
+    <div style={{display:'flex', minHeight:'100vh', background:'#f8fafc'}}>
+      {/* OVERLAY HP */}
+      {open && isMobile && (
+        <div onClick={()=>setOpen(false)} style={{position:'fixed', inset:0, background:'rgba(0,0,0,0.4)', zIndex:40}}></div>
+      )}
+
+      {/* SIDEBAR */}
+      <div style={{
+        width:'260px',
+        background:'white',
+        borderRight:'1px solid #eef2f7',
+        position: isMobile ? 'fixed' : 'sticky',
+        top:0, left:0, bottom:0,
+        zIndex:50,
+        transform: isMobile ? (open ? 'translateX(0)' : 'translateX(-100%)') : 'none',
+        transition:'transform 0.3s ease',
+        display:'flex', flexDirection:'column'
+      }}>
+        <div style={{padding:'20px', fontWeight:'900', fontSize:'22px'}}>RINSEY.</div>
+        
+        <nav style={{flex:1, padding:'10px', display:'flex', flexDirection:'column', gap:'6px'}}>
+          <NavLink to="/" style={({isActive})=>({padding:'12px', borderRadius:'12px', background:isActive?'#111':'transparent', color:isActive?'white':'#64748b', textDecoration:'none', fontWeight:'600'})}>Dashboard</NavLink>
+          <NavLink to="/pelanggan" style={({isActive})=>({padding:'12px', borderRadius:'12px', background:isActive?'#111':'transparent', color:isActive?'white':'#64748b', textDecoration:'none', fontWeight:'600'})}>Pelanggan</NavLink>
+          <NavLink to="/transaksi" style={({isActive})=>({padding:'12px', borderRadius:'12px', background:isActive?'#111':'transparent', color:isActive?'white':'#64748b', textDecoration:'none', fontWeight:'600'})}>Transaksi</NavLink>
+        </nav>
       </div>
 
-      <div style={{display:'flex'}}>
-        {/* SIDEBAR + TOMBOL NEMPEL */}
-        <div style={{width: collapsed ? '80px' : '240px', background:'white', borderRight:'1px solid #eef2f7', padding:'24px', minHeight:'calc(100vh - 64px)', transition:'all 0.2s', position:'relative'}}>
-          
-          {/* TOMBOL BULAT DI PINGGIR SIDEBAR */}
-          <button 
-            onClick={()=> setCollapsed(!collapsed)}
-            style={{
-              position:'absolute',
-              right:'-14px',
-              top:'24px',
-              background:'white',
-              border:'1px solid #e2e8f0',
-              width:'28px',
-              height:'28px',
-              borderRadius:'50%',
-              cursor:'pointer',
-              display:'flex',
-              alignItems:'center',
-              justifyContent:'center',
-              boxShadow:'0 2px 6px rgba(0,0,0,0.1)',
-              zIndex:5
-            }}
-          >
-            {collapsed ? <ChevronRight size={14}/> : <ChevronLeft size={14}/>}
-          </button>
-
-          <p style={{fontSize:'11px', fontWeight:'800', color:'#94a3b8', letterSpacing:'1px', marginBottom:'12px'}}>{!collapsed ? 'MENU' : '...'}</p>
-          <div style={{display:'flex', flexDirection:'column', gap:'6px'}}>
-            {menu.map(m => {
-              const Icon = m.icon
-              const active = loc.pathname === m.path
-              return (
-                <Link key={m.path} to={m.path} style={{
-                  textDecoration:'none', padding:'11px 14px', borderRadius:'10px',
-                  background: active ? 'black' : 'transparent',
-                  color: active ? 'white' : '#64748b', fontWeight:'600', fontSize:'14px',
-                  display:'flex', gap:'10px', alignItems:'center', justifyContent: collapsed ? 'center' : 'flex-start'
-                }}>
-                  <Icon size={18} /> {!collapsed && m.label}
-                </Link>
-              )
-            })}
+      {/* CONTENT */}
+      <div style={{flex:1, minWidth:0}}>
+        {/* TOPBAR */}
+        <div style={{height:'64px', background:'white', borderBottom:'1px solid #eef2f7', display:'flex', alignItems:'center', justifyContent:'space-between', padding:'0 16px', position:'sticky', top:0, zIndex:30}}>
+          <button onClick={()=>setOpen(!open)} style={{width:'40px', height:'40px', borderRadius:'12px', border:'1px solid #e2e8f0', background:'white', display: isMobile ? 'flex' : 'none', alignItems:'center', justifyContent:'center'}}>☰</button>
+          <div style={{fontWeight:'800', display: isMobile ? 'none' : 'block'}}> </div>
+          <div style={{display:'flex', alignItems:'center', gap:'12px'}}>
+            <div style={{width:'36px', height:'36px', borderRadius:'99px', background:'#111', color:'white', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:'700'}}>R</div>
           </div>
-          <button onClick={async()=>{await supabase.auth.signOut(); nav('/login')}} 
-            style={{marginTop:'32px', background:'#f8fafc', color:'#64748b', border:'1px solid #eef2f7', padding:'11px', width:'100%', borderRadius:'10px', fontWeight:'700', cursor:'pointer', display:'flex', gap:'8px', justifyContent:'center', alignItems:'center'}}>
-            <LogOut size={18} /> {!collapsed && "Keluar"}
-          </button>
         </div>
 
-        {/* CONTENT */}
-        <div style={{flex:1, padding:'32px'}}>
+        <div style={{padding: isMobile ? '16px' : '24px'}}>
           {children}
         </div>
       </div>
