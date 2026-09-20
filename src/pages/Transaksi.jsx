@@ -42,7 +42,7 @@ export default function TransaksiPage() {
   // Function Panggil Pop-up Payment Midtrans Snap
   const triggerMidtransPayment = async (order) => {
     try {
-      // 1. Minta Snap Token dari Backend Node.js
+      // 1. Minta Snap Token dari Backend Serverless Vercel
       const response = await axios.post('/api/payment', {
         order_id: order.invoice_no || `RINSEY-${order.id}`,
         gross_amount: order.total_price,
@@ -51,6 +51,10 @@ export default function TransaksiPage() {
       })
 
       const { token } = response.data
+
+      if (!token) {
+        return alert('Gagal mendapatkan token pembayaran dari Midtrans')
+      }
 
       // 2. Tampilkan Modal Snap Midtrans
       if (window.snap) {
@@ -61,21 +65,24 @@ export default function TransaksiPage() {
             setOrders(prev => prev.map(item => item.id === order.id ? { ...item, payment_status: 'lunas' } : item))
           },
           onPending: function (result) {
-            alert('Menunggu Pembayaran...')
+            console.log('Menunggu pembayaran...', result)
           },
           onError: function (result) {
-            alert('Pembayaran Gagal!')
+            alert('Pembayaran Gagal atau Dibatalkan!')
           },
           onClose: function () {
-            console.log('Widget pembayaran ditutup')
+            console.log('Widget pembayaran ditutup oleh pelanggan')
           }
         })
       } else {
-        alert('Script Midtrans belum dimuat di index.html!')
+        alert('Script Midtrans Snap belum terpasang di index.html!')
       }
     } catch (error) {
       console.error('Midtrans payment error:', error)
-      alert('Gagal menghubungkan ke server pembayaran Midtrans')
+      // Hanya tampilkan alert jika Snap gagal dipanggil sama sekali
+      if (!window.snap) {
+        alert('Gagal menghubungkan ke server pembayaran Midtrans')
+      }
     }
   }
 
