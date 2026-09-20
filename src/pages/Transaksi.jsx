@@ -43,7 +43,7 @@ export default function TransaksiPage() {
   const triggerMidtransPayment = async (order) => {
     try {
       // 1. Minta Snap Token dari Backend Node.js
-      const response = await axios.post('http://localhost:5000/api/payment/create', {
+      const response = await axios.post('/api/payment', {
         order_id: order.invoice_no || `RINSEY-${order.id}`,
         gross_amount: order.total_price,
         customer_name: order.customers?.name || 'Pelanggan Laundry',
