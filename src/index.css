@@ -1,0 +1,13 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+body {
+  background: #f8fafc !important;
+  color: #111827 !important;
+  font-family: Inter, sans-serif;
+}
+a {
+  color: inherit;
+}
