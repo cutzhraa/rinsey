@@ -7,13 +7,22 @@ import PelangganPage from './pages/Pelanggan'
 import TransaksiPage from './pages/Transaksi' // <-- INI YANG TADI LUPA DI-IMPORT!
 import Layout from './components/Layout'
 
+function ProtectedRoute({ session, children }) {
+  return session ? children : <Navigate to="/login" replace />
+}
+
+function PublicOnlyRoute({ session, children }) {
+  return session ? <Navigate to="/" replace /> : children
+}
+
 export default function App() {
   const [session, setSession] = useState(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => { setSession(data.session); setLoading(false) })
-    supabase.auth.onAuthStateChange((_e, s) => setSession(s))
+    const { data: listener } = supabase.auth.onAuthStateChange((_e, s) => setSession(s))
+    return () => listener.subscription.unsubscribe()
   }, [])
 
   if (loading) return <p style={{ padding: '20px' }}>Loading...</p>
@@ -21,10 +30,11 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route path="/" element={session ? <Layout><Dashboard /></Layout> : <Navigate to="/login" />} />
-        <Route path="/pelanggan" element={session ? <Layout><PelangganPage /></Layout> : <Navigate to="/login" />} />
-        <Route path="/transaksi" element={session ? <Layout><TransaksiPage /></Layout> : <Navigate to="/login" />} />
+        <Route path="/login" element={<PublicOnlyRoute session={session}><Login /></PublicOnlyRoute>} />
+        <Route path="/" element={<ProtectedRoute session={session}><Layout><Dashboard /></Layout></ProtectedRoute>} />
+        <Route path="/pelanggan" element={<ProtectedRoute session={session}><Layout><PelangganPage /></Layout></ProtectedRoute>} />
+        <Route path="/transaksi" element={<ProtectedRoute session={session}><Layout><TransaksiPage /></Layout></ProtectedRoute>} />
+        <Route path="*" element={<Navigate to={session ? '/' : '/login'} replace />} />
       </Routes>
     </BrowserRouter>
   )
