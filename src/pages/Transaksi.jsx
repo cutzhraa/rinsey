@@ -18,6 +18,14 @@ const getDefaultEstimatedDate = () => {
   return date.toISOString().slice(0, 10)
 }
 
+const escapePrintText = value => String(value ?? '').replace(/[&<>"']/g, character => ({
+  '&': '&amp;',
+  '<': '&lt;',
+  '>': '&gt;',
+  '"': '&quot;',
+  "'": '&#039;'
+}[character]))
+
 export default function TransaksiPage() {
   const { role, businessId } = useAccess()
   const [orders, setOrders] = useState([])
@@ -248,6 +256,49 @@ export default function TransaksiPage() {
 
     const waUrl = `https://wa.me/${phone}?text=${encodeURIComponent(text)}`
     window.open(waUrl, '_blank')
+  }
+
+  const printReceipt = (o) => {
+    const statusLabel = orderStatuses.find(status => status.value === o.status)?.label || o.status || '-'
+    const paymentMethod = { cash: 'Cash / Tunai', qris: 'QRIS', transfer: 'Bank Transfer' }[o.payment_method] || o.payment_method || '-'
+    const date = o.created_at ? new Date(o.created_at).toLocaleDateString('id-ID') : new Date().toLocaleDateString('id-ID')
+    const estimatedDate = o.estimated_completion_date
+      ? new Date(`${o.estimated_completion_date}T00:00:00`).toLocaleDateString('id-ID')
+      : 'Belum ditentukan'
+    const printWindow = window.open('', '_blank', 'width=420,height=700')
+    if (!printWindow) return alert('Popup print diblokir browser. Izinkan popup untuk mencetak struk.')
+    printWindow.document.write(`<!doctype html><html><head><title>${escapePrintText(o.invoice_no || 'Struk')}</title><style>
+      @page { size: 80mm auto; margin: 0; }
+      * { box-sizing: border-box; }
+      body { width: 72mm; margin: 0 auto; padding: 5mm 2mm; color: #111; font: 12px Arial, sans-serif; }
+      h1 { margin: 0; text-align: center; font-size: 18px; }
+      .center { text-align: center; }
+      .line { border-top: 1px dashed #111; margin: 9px 0; }
+      .row { display: flex; justify-content: space-between; gap: 8px; margin: 5px 0; }
+      .total { font-size: 16px; font-weight: 700; }
+      .muted { color: #555; font-size: 11px; }
+      @media print { body { width: 72mm; } }
+    </style></head><body>
+      <h1>RINSEY.</h1><div class="center">NOTA LAUNDRY</div><div class="line"></div>
+      <div class="row"><span>No. Invoice</span><strong>${escapePrintText(o.invoice_no || '-')}</strong></div>
+      <div class="row"><span>Tanggal</span><span>${escapePrintText(date)}</span></div>
+      <div class="row"><span>Pelanggan</span><span>${escapePrintText(o.customers?.name || 'Pelanggan Umum')}</span></div>
+      <div class="line"></div>
+      <div class="row"><span>${escapePrintText(o.services?.name || '-')}</span><span>${escapePrintText(`${o.weight || 0} ${o.services?.unit || 'kg'}`)}</span></div>
+      <div class="row total"><span>TOTAL</span><span>Rp ${escapePrintText(Number(o.total_price || 0).toLocaleString('id-ID'))}</span></div>
+      <div class="line"></div>
+      <div class="row"><span>Pembayaran</span><span>${escapePrintText(paymentMethod)}</span></div>
+      <div class="row"><span>Status bayar</span><span>${escapePrintText(o.payment_status === 'lunas' ? 'LUNAS' : 'BELUM LUNAS')}</span></div>
+      <div class="row"><span>Status cucian</span><span>${escapePrintText(statusLabel)}</span></div>
+      <div class="row"><span>Estimasi selesai</span><span>${escapePrintText(estimatedDate)}</span></div>
+      <div class="line"></div><div class="center muted">Terima kasih telah mempercayakan cucian Anda kepada kami.</div>
+    </body></html>`)
+    printWindow.document.close()
+    printWindow.focus()
+    printWindow.onload = () => {
+      printWindow.print()
+      printWindow.onafterprint = () => printWindow.close()
+    }
   }
 
   const filteredOrders = orders.filter(o =>
@@ -626,12 +677,20 @@ export default function TransaksiPage() {
                   🗑 Hapus
                 </button>}
               </div>
-              {can(role, 'receipt') && <button
-                onClick={() => sendWhatsAppReceipt(o)}
-                style={{ background: '#25D366', color: 'white', border: 'none', padding: '8px 14px', borderRadius: '10px', fontWeight: '700', fontSize: '12px', cursor: 'pointer' }}
-              >
-                💬 Kirim WA Struk
-              </button>}
+              {can(role, 'receipt') && <div style={{ display: 'flex', gap: '6px' }}>
+                <button
+                  onClick={() => printReceipt(o)}
+                  style={{ background: '#111827', color: 'white', border: 'none', padding: '8px 12px', borderRadius: '10px', fontWeight: '700', fontSize: '12px', cursor: 'pointer' }}
+                >
+                  🖨️ Cetak Struk
+                </button>
+                <button
+                  onClick={() => sendWhatsAppReceipt(o)}
+                  style={{ background: '#25D366', color: 'white', border: 'none', padding: '8px 12px', borderRadius: '10px', fontWeight: '700', fontSize: '12px', cursor: 'pointer' }}
+                >
+                  💬 Kirim WA
+                </button>
+              </div>}
             </div>
           </div>
         ))}
