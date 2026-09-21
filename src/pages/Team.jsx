@@ -76,8 +76,8 @@ export default function TeamPage() {
       <div style={{ background: 'white', border: '1px solid #eef2f7', borderRadius: '16px', marginTop: '16px', overflow: 'hidden' }}>
         {loading ? <p style={{ padding: '20px', color: '#64748b' }}>Memuat anggota...</p> : members.map(member => (
           <div key={member.id} style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', padding: '16px 20px', borderBottom: '1px solid #f1f5f9', flexWrap: 'wrap' }}>
-            <div><strong>{member.email}</strong><div style={{ color: '#64748b', fontSize: '13px' }}>{member.status === 'invited' ? 'Undangan' : 'Aktif'}</div></div>
-            <span style={{ fontWeight: '700', textTransform: 'capitalize' }}>{member.role}</span>
+            <div><strong>{member.out_email}</strong><div style={{ color: '#64748b', fontSize: '13px' }}>{member.out_status === 'invited' ? 'Undangan' : 'Aktif'}</div></div>
+            <span style={{ fontWeight: '700', textTransform: 'capitalize' }}>{member.out_role}</span>
           </div>
         ))}
         {!loading && members.length === 0 && <p style={{ padding: '20px', color: '#64748b' }}>Belum ada anggota.</p>}

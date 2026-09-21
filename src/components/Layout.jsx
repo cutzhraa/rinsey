@@ -9,7 +9,7 @@ export default function Layout({ children }){
   const [user, setUser] = useState(null)
   const [business, setBusiness] = useState(null)
   const [isMobile, setIsMobile] = useState(false)
-  const [isOwner, setIsOwner] = useState(false)
+  const [role, setRole] = useState(null)
   const location = useLocation()
   const navigate = useNavigate()
 
@@ -23,19 +23,26 @@ export default function Layout({ children }){
   useEffect(()=>{ if(isMobile) setOpen(false); setProfileOpen(false) }, [location.pathname, isMobile])
 
   useEffect(() => {
-    supabase.auth.getUser().then(async ({ data, error }) => {
-      if (error) {
-        console.error('Gagal memuat profil pengguna:', error)
+    const loadContext = async () => {
+      const { data: userData, error: userError } = await supabase.auth.getUser()
+      if (userError) {
+        console.error('Gagal memuat profil pengguna:', userError)
         return
       }
-      setUser(data.user)
-      const { data: profile, error: profileError } = await supabase.from('business_profiles').select('business_name').eq('user_id', data.user.id).maybeSingle()
-      if (profileError) console.error('Gagal memuat nama laundry:', profileError)
-      setBusiness(profile)
-    })
-    supabase.rpc('get_my_business_role').then(({ data }) => {
-      setIsOwner(data?.some(member => member.role === 'owner') || false)
-    })
+      setUser(userData.user)
+
+      const { data: context, error: contextError } = await supabase.rpc('get_my_business_context')
+      if (contextError) {
+        console.error('Gagal memuat role bisnis:', contextError)
+        return
+      }
+      const activeContext = context?.[0]
+      if (activeContext) {
+        setBusiness({ business_name: activeContext.out_business_name })
+        setRole(activeContext.out_role)
+      }
+    }
+    loadContext()
   }, [])
 
   const handleLogout = async () => {
@@ -68,7 +75,7 @@ export default function Layout({ children }){
             <NavLink to="/transaksi" style={({isActive})=>({padding:'12px', borderRadius:'12px', background:isActive?'#111':'transparent', color:isActive?'white':'#64748b', textDecoration:'none', fontWeight:'600'})}>Transaksi</NavLink>
             <NavLink to="/keuangan" style={({isActive})=>({padding:'12px', borderRadius:'12px', background:isActive?'#111':'transparent', color:isActive?'white':'#64748b', textDecoration:'none', fontWeight:'600'})}>Keuangan</NavLink>
             <NavLink to="/stok" style={({isActive})=>({padding:'12px', borderRadius:'12px', background:isActive?'#111':'transparent', color:isActive?'white':'#64748b', textDecoration:'none', fontWeight:'600'})}>Stok</NavLink>
-            {isOwner && <NavLink to="/tim" style={({isActive})=>({padding:'12px', borderRadius:'12px', background:isActive?'#111':'transparent', color:isActive?'white':'#64748b', textDecoration:'none', fontWeight:'600'})}>Kelola Tim</NavLink>}
+            {role === 'owner' && <NavLink to="/tim" style={({isActive})=>({padding:'12px', borderRadius:'12px', background:isActive?'#111':'transparent', color:isActive?'white':'#64748b', textDecoration:'none', fontWeight:'600'})}>Kelola Tim</NavLink>}
           </nav>
         </div>
       </div>
@@ -110,6 +117,9 @@ export default function Layout({ children }){
                   <div style={{fontSize:'12px', fontWeight:'800', color:'#111827'}}>{business?.business_name || 'Rinsey'}</div>
                   <div style={{fontSize:'12px', color:'#64748b', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
                     {user?.email || 'Akun aktif'}
+                  </div>
+                  <div style={{fontSize:'12px', color:'#64748b', marginTop:'4px'}}>
+                    Role: {role ? role.charAt(0).toUpperCase() + role.slice(1) : 'Memuat...'}
                   </div>
                 </div>
                 <button
