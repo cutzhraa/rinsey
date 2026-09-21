@@ -12,6 +12,9 @@ create table if not exists public.business_profiles (
 
 alter table public.business_profiles enable row level security;
 
+drop policy if exists "Users can manage their own business profile"
+  on public.business_profiles;
+
 create policy "Users can manage their own business profile"
   on public.business_profiles for all
   using (auth.uid() = user_id)
