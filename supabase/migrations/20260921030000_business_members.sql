@@ -23,10 +23,11 @@ security definer
 set search_path = public
 as $$
   select exists (
-    select 1 from public.business_members
-    where business_id = p_business_id
-      and user_id = auth.uid()
-      and status = 'active'
+    select 1
+    from public.business_members as bm
+    where bm.business_id = p_business_id
+      and bm.user_id = auth.uid()
+      and bm.status = 'active'
   );
 $$;
 
@@ -59,11 +60,11 @@ set search_path = public
 as $$
   select exists (
     select 1
-    from public.business_members
-    where business_id = p_business_id
-      and user_id = auth.uid()
-      and role = 'owner'
-      and status = 'active'
+    from public.business_members as bm
+    where bm.business_id = p_business_id
+      and bm.user_id = auth.uid()
+      and bm.role = 'owner'
+      and bm.status = 'active'
   );
 $$;
 
