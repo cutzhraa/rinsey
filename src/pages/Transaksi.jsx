@@ -21,6 +21,9 @@ export default function TransaksiPage() {
   const [showAdd, setShowAdd] = useState(false)
   const [editingId, setEditingId] = useState(null)
   const [search, setSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState('semua')
+  const [paymentFilter, setPaymentFilter] = useState('semua')
+  const [methodFilter, setMethodFilter] = useState('semua')
   const [qrisPayment, setQrisPayment] = useState(null)
 
   // State Form Transaksi Baru
@@ -217,9 +220,19 @@ export default function TransaksiPage() {
   }
 
   const filteredOrders = orders.filter(o =>
-    o.customers?.name?.toLowerCase().includes(search.toLowerCase()) ||
-    o.invoice_no?.toLowerCase().includes(search.toLowerCase())
+    (o.customers?.name?.toLowerCase().includes(search.toLowerCase()) ||
+      o.invoice_no?.toLowerCase().includes(search.toLowerCase())) &&
+    (statusFilter === 'semua' || o.status === statusFilter) &&
+    (paymentFilter === 'semua' || o.payment_status === paymentFilter) &&
+    (methodFilter === 'semua' || o.payment_method === methodFilter)
   )
+
+  const resetFilters = () => {
+    setSearch('')
+    setStatusFilter('semua')
+    setPaymentFilter('semua')
+    setMethodFilter('semua')
+  }
 
   return (
     <div>
@@ -428,17 +441,44 @@ export default function TransaksiPage() {
         </form>
       )}
 
-      {/* SEARCH BAR */}
-      <input
-        placeholder="Cari transaksi berdasarkan invoice atau pelanggan..."
-        value={search}
-        onChange={e => setSearch(e.target.value)}
-        style={{ marginTop: '16px', width: '100%', padding: '14px 16px', borderRadius: '14px', border: '1px solid #e2e8f0', background: 'white', outline: 'none', boxSizing: 'border-box' }}
-      />
+      {/* SEARCH AND FILTERS */}
+      <div style={{ background: 'white', padding: '14px', borderRadius: '16px', border: '1px solid #eef2f7', marginTop: '16px' }}>
+        <input
+          placeholder="Cari invoice atau nama pelanggan..."
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          style={{ width: '100%', padding: '14px 16px', borderRadius: '12px', border: '1px solid #e2e8f0', background: 'white', outline: 'none', boxSizing: 'border-box' }}
+        />
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '10px', marginTop: '10px' }}>
+          <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} aria-label="Filter status cucian" style={{ padding: '11px 12px', borderRadius: '10px', border: '1px solid #e2e8f0', color: '#334155', background: 'white' }}>
+            <option value="semua">Semua status cucian</option>
+            {orderStatuses.map(status => <option key={status.value} value={status.value}>{status.label}</option>)}
+          </select>
+          <select value={paymentFilter} onChange={e => setPaymentFilter(e.target.value)} aria-label="Filter status pembayaran" style={{ padding: '11px 12px', borderRadius: '10px', border: '1px solid #e2e8f0', color: '#334155', background: 'white' }}>
+            <option value="semua">Semua pembayaran</option>
+            <option value="belum">Belum lunas</option>
+            <option value="lunas">Lunas</option>
+          </select>
+          <select value={methodFilter} onChange={e => setMethodFilter(e.target.value)} aria-label="Filter metode pembayaran" style={{ padding: '11px 12px', borderRadius: '10px', border: '1px solid #e2e8f0', color: '#334155', background: 'white' }}>
+            <option value="semua">Semua metode</option>
+            <option value="cash">Cash / Tunai</option>
+            <option value="qris">QRIS</option>
+            <option value="transfer">Bank Transfer</option>
+          </select>
+          <button type="button" onClick={resetFilters} style={{ padding: '11px 12px', borderRadius: '10px', border: 'none', background: '#F1F5F9', color: '#334155', fontWeight: '700', cursor: 'pointer' }}>Reset Filter</button>
+        </div>
+        <div style={{ marginTop: '10px', color: '#64748b', fontSize: '12px', fontWeight: '600' }}>
+          Menampilkan {filteredOrders.length} dari {orders.length} transaksi
+        </div>
+      </div>
 
       {/* DAFTAR TRANSAKSI TABLE / CARDS */}
       <div style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-        {filteredOrders.map(o => (
+        {filteredOrders.length === 0 ? (
+          <div style={{ background: 'white', padding: '24px', borderRadius: '16px', border: '1px solid #eef2f7', color: '#64748b', textAlign: 'center' }}>
+            Tidak ada transaksi yang sesuai filter.
+          </div>
+        ) : filteredOrders.map(o => (
           <div key={o.id} style={{ background: 'white', padding: '16px 20px', borderRadius: '16px', border: '1px solid #eef2f7', display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
