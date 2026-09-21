@@ -11,6 +11,7 @@ const routeRoles = {
   transactions: ['owner', 'admin', 'kasir', 'staff'],
   finance: ['owner', 'admin'],
   inventory: ['owner', 'admin'],
+  services: ['owner', 'admin', 'kasir'],
   team: ['owner'],
 }
 
@@ -27,6 +28,7 @@ const actionRoles = {
   intakeStatus: ['owner', 'admin', 'kasir'],
   pickupStatus: ['owner', 'admin', 'kasir'],
   inventoryManage: ['owner', 'admin'],
+  serviceManage: ['owner', 'admin'],
   receipt: ['owner', 'admin', 'kasir'],
 }
 
@@ -40,6 +42,7 @@ export const routeForPath = path => {
   if (path.startsWith('/transaksi')) return 'transactions'
   if (path.startsWith('/keuangan')) return 'finance'
   if (path.startsWith('/stok')) return 'inventory'
+  if (path.startsWith('/layanan')) return 'services'
   if (path.startsWith('/tim')) return 'team'
   return null
 }

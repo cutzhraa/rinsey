@@ -10,6 +10,7 @@ import StokPage from './pages/Stok'
 import Register from './pages/Register'
 import Onboarding from './pages/Onboarding'
 import TeamPage from './pages/Team'
+import LayananPage from './pages/Layanan'
 import Layout from './components/Layout'
 
 function ProtectedRoute({ session, children }) {
@@ -43,6 +44,7 @@ export default function App() {
         <Route path="/transaksi" element={<ProtectedRoute session={session}><Layout><TransaksiPage /></Layout></ProtectedRoute>} />
         <Route path="/keuangan" element={<ProtectedRoute session={session}><Layout><KeuanganPage /></Layout></ProtectedRoute>} />
         <Route path="/stok" element={<ProtectedRoute session={session}><Layout><StokPage /></Layout></ProtectedRoute>} />
+        <Route path="/layanan" element={<ProtectedRoute session={session}><Layout><LayananPage /></Layout></ProtectedRoute>} />
         <Route path="/tim" element={<ProtectedRoute session={session}><Layout><TeamPage /></Layout></ProtectedRoute>} />
         <Route path="*" element={<Navigate to={session ? '/' : '/login'} replace />} />
       </Routes>
