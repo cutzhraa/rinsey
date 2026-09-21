@@ -252,7 +252,7 @@ export default function TransaksiPage() {
               style={{ float: 'right', border: 'none', background: 'transparent', fontSize: '22px', cursor: 'pointer', color: '#64748b' }}
             >
               ×
-            </button>
+            </button>}
             <h2 id="qris-modal-title" style={{ margin: '4px 0 8px', color: '#111827', fontSize: '22px' }}>QRIS Pembayaran Pelanggan</h2>
             <p style={{ margin: '0 0 16px', color: '#64748b', fontSize: '13px' }}>
               Minta pelanggan scan QR ini untuk membayar, atau simpan gambarnya untuk dikirim nanti.
@@ -479,15 +479,15 @@ export default function TransaksiPage() {
                   }}
                 >
                   {o.payment_status === 'lunas' ? '✓ LUNAS' : '✗ BELUM BAYAR'}
-                </button>
+                </button>}
               </div>
             </div>
 
             {/* ACTION BUTTONS */}
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center', width: '100%', borderTop: '1px solid #f8fafc', paddingTop: '10px', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', gap: '6px' }}>
-                {o.status !== 'diambil' && (
-                  {can(role, 'transactionEdit') && <button
+                {can(role, 'status') && o.status !== 'diambil' && (
+                  <button
                     type="button"
                     onClick={() => handleAdvanceStatus(o)}
                     title="Pindahkan ke tahap berikutnya"
@@ -496,7 +496,7 @@ export default function TransaksiPage() {
                     Pindahkan ke {orderStatuses[orderStatuses.findIndex(status => status.value === o.status) + 1]?.label || 'Berikutnya'} →
                   </button>
                 )}
-                <button
+                {can(role, 'transactionEdit') && <button
                   onClick={() => handleOpenEdit(o)}
                   title="Edit transaksi"
                   style={{ background: '#F1F5F9', color: '#334155', border: 'none', padding: '8px 12px', borderRadius: '10px', fontWeight: '700', fontSize: '12px', cursor: 'pointer' }}
