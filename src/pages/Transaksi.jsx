@@ -8,6 +8,7 @@ export default function TransaksiPage() {
   const [services, setServices] = useState([])
   const [loading, setLoading] = useState(false)
   const [showAdd, setShowAdd] = useState(false)
+  const [editingId, setEditingId] = useState(null)
   const [search, setSearch] = useState('')
   const [qrisPayment, setQrisPayment] = useState(null)
 
@@ -35,6 +36,25 @@ export default function TransaksiPage() {
   }
 
   useEffect(() => { fetchData() }, [])
+
+  const resetForm = () => {
+    setForm({ customer_id: '', service_id: '', weight: 1, payment_status: 'belum', payment_method: 'cash' })
+    setEditingId(null)
+    setShowAdd(false)
+  }
+
+  const handleOpenEdit = (order) => {
+    setEditingId(order.id)
+    setForm({
+      customer_id: order.customer_id || '',
+      service_id: order.service_id || '',
+      weight: order.weight || 1,
+      payment_status: order.payment_status || 'belum',
+      payment_method: order.payment_method || 'cash'
+    })
+    setShowAdd(true)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
 
   // Hitung Total Price Realtime
   const selectedService = services.find(s => s.id === form.service_id)
@@ -84,11 +104,7 @@ export default function TransaksiPage() {
       return
     }
 
-    const invNo = `INV-${Date.now().toString().slice(-6)}`
-
     const payload = {
-      user_id: user.id,
-      invoice_no: invNo,
       customer_id: form.customer_id,
       service_id: form.service_id,
       weight: Number(form.weight),
@@ -98,26 +114,37 @@ export default function TransaksiPage() {
       payment_method: form.payment_method
     }
 
-    const { data, error } = await supabase
-      .from('orders')
-      .insert([payload])
-      .select('*, customers(name, phone), services(name, unit, price)')
+    const query = editingId
+      ? supabase.from('orders').update(payload).eq('id', editingId)
+      : supabase.from('orders').insert([{ ...payload, user_id: user.id, invoice_no: `INV-${Date.now().toString().slice(-6)}` }])
+    const { data, error } = await query.select('*, customers(name, phone), services(name, unit, price)')
 
     setLoading(false)
     if (error) {
-      alert('Gagal membuat transaksi: ' + error.message)
+      alert(`${editingId ? 'Gagal mengubah' : 'Gagal membuat'} transaksi: ${error.message}`)
     } else {
-      const newOrder = data[0]
-      setOrders([newOrder, ...orders])
-      setShowAdd(false)
-      setForm({ customer_id: '', service_id: '', weight: 1, payment_status: 'belum', payment_method: 'cash' })
+      const savedOrder = data[0]
+      setOrders(prev => editingId
+        ? prev.map(order => order.id === editingId ? savedOrder : order)
+        : [savedOrder, ...prev])
+      resetForm()
 
-      // Jika metode bayar QRIS & belum lunas -> Panggil Pop-up Midtrans otomatis!
-      if (newOrder.payment_method === 'qris' && newOrder.payment_status === 'belum') {
-        triggerMidtransPayment(newOrder)
+      if (savedOrder.payment_method === 'qris' && savedOrder.payment_status === 'belum') {
+        triggerMidtransPayment(savedOrder)
       } else {
-        alert('Transaksi berhasil dibuat!')
+        alert(editingId ? 'Transaksi berhasil diubah!' : 'Transaksi berhasil dibuat!')
       }
+    }
+  }
+
+  const handleDelete = async (order) => {
+    if (!confirm(`Hapus transaksi ${order.invoice_no || ''}? Data yang sudah dihapus tidak bisa dikembalikan.`)) return
+
+    const { error } = await supabase.from('orders').delete().eq('id', order.id)
+    if (error) {
+      alert('Gagal menghapus transaksi: ' + error.message)
+    } else {
+      setOrders(prev => prev.filter(item => item.id !== order.id))
     }
   }
 
@@ -242,7 +269,7 @@ export default function TransaksiPage() {
           <p style={{ color: '#64748b', marginTop: '4px' }}>Kelola pesanan dan kasir laundry</p>
         </div>
         <button
-          onClick={() => setShowAdd(!showAdd)}
+          onClick={() => showAdd ? resetForm() : setShowAdd(true)}
           style={{ background: '#4361EE', color: 'white', padding: '10px 18px', borderRadius: '12px', fontWeight: '700', cursor: 'pointer', border: 'none' }}
         >
           {showAdd ? 'Batal' : '+ Transaksi Baru'}
@@ -252,7 +279,7 @@ export default function TransaksiPage() {
       {/* FORM INPUT TRANSAKSI BARU */}
       {showAdd && (
         <form onSubmit={handleCreateOrder} style={{ background: 'white', padding: '20px', borderRadius: '20px', border: '1px solid #eef2f7', marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-          <h3 style={{ margin: 0, fontWeight: '700', fontSize: '16px' }}>Buat Transaksi Baru</h3>
+          <h3 style={{ margin: 0, fontWeight: '700', fontSize: '16px' }}>{editingId ? 'Edit Transaksi' : 'Buat Transaksi Baru'}</h3>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
             {/* SELECT PELANGGAN */}
@@ -345,7 +372,7 @@ export default function TransaksiPage() {
               disabled={loading}
               style={{ background: '#111', color: 'white', padding: '12px 24px', borderRadius: '12px', fontWeight: '700', cursor: 'pointer', border: 'none', opacity: loading ? 0.7 : 1 }}
             >
-              {loading ? 'Menyimpan...' : 'Simpan Transaksi'}
+              {loading ? 'Menyimpan...' : editingId ? 'Simpan Perubahan' : 'Simpan Transaksi'}
             </button>
           </div>
         </form>
@@ -412,9 +439,25 @@ export default function TransaksiPage() {
 
             {/* ACTION BUTTONS */}
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center', width: '100%', borderTop: '1px solid #f8fafc', paddingTop: '10px', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', gap: '6px' }}>
+                <button
+                  onClick={() => handleOpenEdit(o)}
+                  title="Edit transaksi"
+                  style={{ background: '#F1F5F9', color: '#334155', border: 'none', padding: '8px 12px', borderRadius: '10px', fontWeight: '700', fontSize: '12px', cursor: 'pointer' }}
+                >
+                  ✏️ Edit
+                </button>
+                <button
+                  onClick={() => handleDelete(o)}
+                  title="Hapus transaksi"
+                  style={{ background: '#FEE2E2', color: '#DC2626', border: 'none', padding: '8px 12px', borderRadius: '10px', fontWeight: '700', fontSize: '12px', cursor: 'pointer' }}
+                >
+                  🗑 Hapus
+                </button>
+              </div>
               <button
                 onClick={() => sendWhatsAppReceipt(o)}
-                style={{ background: '#25D366', color: 'white', border: 'none', padding: '8px 14px', borderRadius: '10px', fontWeight: '700', fontSize: '12px', cursor: 'pointer', marginLeft: 'auto' }}
+                style={{ background: '#25D366', color: 'white', border: 'none', padding: '8px 14px', borderRadius: '10px', fontWeight: '700', fontSize: '12px', cursor: 'pointer' }}
               >
                 💬 Kirim WA Struk
               </button>
