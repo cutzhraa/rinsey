@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import axios from 'axios'
+import { can } from '../lib/access'
+import { useAccess } from '../components/Layout'
 
 const orderStatuses = [
   { value: 'masuk', label: 'Masuk', color: '#475569', background: '#F1F5F9' },
@@ -11,6 +13,7 @@ const orderStatuses = [
 ]
 
 export default function TransaksiPage() {
+  const { role } = useAccess()
   const [orders, setOrders] = useState([])
   const [customers, setCustomers] = useState([])
   const [services, setServices] = useState([])
@@ -292,16 +295,16 @@ export default function TransaksiPage() {
           <h1 style={{ fontSize: '28px', fontWeight: '800', color: '#111' }}>Transaksi</h1>
           <p style={{ color: '#64748b', marginTop: '4px' }}>Kelola pesanan dan kasir laundry</p>
         </div>
-        <button
+        {can(role, 'transactionCreate') && <button
           onClick={() => showAdd ? resetForm() : setShowAdd(true)}
           style={{ background: '#4361EE', color: 'white', padding: '10px 18px', borderRadius: '12px', fontWeight: '700', cursor: 'pointer', border: 'none' }}
         >
           {showAdd ? 'Batal' : '+ Transaksi Baru'}
-        </button>
+        </button>}
       </div>
 
       {/* FORM INPUT TRANSAKSI BARU */}
-      {showAdd && (
+      {showAdd && can(role, 'transactionCreate') && (
         <form onSubmit={handleCreateOrder} style={{ background: 'white', padding: '20px', borderRadius: '20px', border: '1px solid #eef2f7', marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
           <h3 style={{ margin: 0, fontWeight: '700', fontSize: '16px' }}>{editingId ? 'Edit Transaksi' : 'Buat Transaksi Baru'}</h3>
 
@@ -453,7 +456,7 @@ export default function TransaksiPage() {
                 Rp {o.total_price?.toLocaleString('id-ID')}
               </div>
               <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end', marginTop: '4px' }}>
-                {o.payment_method === 'qris' && o.payment_status === 'belum' && (
+                {can(role, 'qris') && o.payment_method === 'qris' && o.payment_status === 'belum' && (
                   <button
                     onClick={() => triggerMidtransPayment(o)}
                     title="Tampilkan QRIS agar pelanggan dapat membayar"
@@ -462,7 +465,7 @@ export default function TransaksiPage() {
                     ▣ Tampilkan QRIS
                   </button>
                 )}
-                <button
+                {can(role, 'payment') && <button
                   onClick={() => handleTogglePayment(o)}
                   style={{
                     background: o.payment_status === 'lunas' ? '#D1FAE5' : '#FEE2E2',
@@ -484,7 +487,7 @@ export default function TransaksiPage() {
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center', width: '100%', borderTop: '1px solid #f8fafc', paddingTop: '10px', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', gap: '6px' }}>
                 {o.status !== 'diambil' && (
-                  <button
+                  {can(role, 'transactionEdit') && <button
                     type="button"
                     onClick={() => handleAdvanceStatus(o)}
                     title="Pindahkan ke tahap berikutnya"
@@ -499,21 +502,21 @@ export default function TransaksiPage() {
                   style={{ background: '#F1F5F9', color: '#334155', border: 'none', padding: '8px 12px', borderRadius: '10px', fontWeight: '700', fontSize: '12px', cursor: 'pointer' }}
                 >
                   ✏️ Edit
-                </button>
-                <button
+                </button>}
+                {can(role, 'transactionDelete') && <button
                   onClick={() => handleDelete(o)}
                   title="Hapus transaksi"
                   style={{ background: '#FEE2E2', color: '#DC2626', border: 'none', padding: '8px 12px', borderRadius: '10px', fontWeight: '700', fontSize: '12px', cursor: 'pointer' }}
                 >
                   🗑 Hapus
-                </button>
+                </button>}
               </div>
-              <button
+              {can(role, 'receipt') && <button
                 onClick={() => sendWhatsAppReceipt(o)}
                 style={{ background: '#25D366', color: 'white', border: 'none', padding: '8px 14px', borderRadius: '10px', fontWeight: '700', fontSize: '12px', cursor: 'pointer' }}
               >
                 💬 Kirim WA Struk
-              </button>
+              </button>}
             </div>
           </div>
         ))}

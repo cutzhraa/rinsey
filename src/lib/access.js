@@ -25,6 +25,7 @@ const actionRoles = {
   qris: ['owner', 'admin', 'kasir'],
   status: ['owner', 'admin', 'kasir', 'staff'],
   inventoryManage: ['owner', 'admin'],
+  receipt: ['owner', 'admin', 'kasir'],
 }
 
 export const normalizeRole = role => String(role || '').toLowerCase()
