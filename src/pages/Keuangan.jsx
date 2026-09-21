@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { useAccess } from '../components/Layout'
 
 const emptyForm = { type: 'expense', category: 'Operasional', description: '', amount: '', transaction_date: new Date().toISOString().slice(0, 10) }
 
 export default function KeuanganPage() {
+  const { businessId } = useAccess()
   const [entries, setEntries] = useState([])
   const [paidOrders, setPaidOrders] = useState([])
   const [form, setForm] = useState(emptyForm)
@@ -13,8 +15,8 @@ export default function KeuanganPage() {
   const loadData = async () => {
     setLoading(true)
     const [{ data: transactions, error: transactionError }, { data: orders, error: orderError }] = await Promise.all([
-      supabase.from('financial_transactions').select('*').order('transaction_date', { ascending: false }),
-      supabase.from('orders').select('id, invoice_no, total_price, created_at').eq('payment_status', 'lunas').order('created_at', { ascending: false })
+      supabase.from('financial_transactions').select('*').eq('business_id', businessId).order('transaction_date', { ascending: false }),
+      supabase.from('orders').select('id, invoice_no, total_price, created_at').eq('business_id', businessId).eq('payment_status', 'lunas').order('created_at', { ascending: false })
     ])
     if (transactionError || orderError) {
       console.error('Gagal memuat data keuangan:', transactionError || orderError)
@@ -25,7 +27,7 @@ export default function KeuanganPage() {
     setLoading(false)
   }
 
-  useEffect(() => { loadData() }, [])
+  useEffect(() => { if (businessId) loadData() }, [businessId])
 
   const totals = useMemo(() => {
     const orderIncome = paidOrders.reduce((sum, order) => sum + Number(order.total_price || 0), 0)
@@ -42,7 +44,7 @@ export default function KeuanganPage() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return alert('Sesi login berakhir. Silakan login ulang.')
 
-    const { data, error } = await supabase.from('financial_transactions').insert([{ ...form, user_id: user.id, amount }]).select()
+    const { data, error } = await supabase.from('financial_transactions').insert([{ ...form, user_id: user.id, business_id: businessId, amount }]).select()
     if (error) return alert('Gagal menyimpan catatan: ' + error.message)
     setEntries(prev => [data[0], ...prev])
     setForm(emptyForm)

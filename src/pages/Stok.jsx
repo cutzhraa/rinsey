@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { useAccess } from '../components/Layout'
 
 const emptyForm = { name: '', quantity: '', unit: '', min_quantity: '', cost_price: '' }
 
 export default function StokPage() {
+  const { businessId } = useAccess()
   const [items, setItems] = useState([])
   const [form, setForm] = useState(emptyForm)
   const [editingId, setEditingId] = useState(null)
@@ -12,7 +14,7 @@ export default function StokPage() {
 
   const loadItems = async () => {
     setLoading(true)
-    const { data, error } = await supabase.from('inventory_items').select('*').order('name')
+    const { data, error } = await supabase.from('inventory_items').select('*').eq('business_id', businessId).order('name')
     if (error) {
       console.error('Gagal memuat stok:', error)
       alert('Gagal memuat stok. Pastikan migration Keuangan + Stok sudah dijalankan di Supabase.')
@@ -21,7 +23,7 @@ export default function StokPage() {
     setLoading(false)
   }
 
-  useEffect(() => { loadItems() }, [])
+  useEffect(() => { if (businessId) loadItems() }, [businessId])
 
   const resetForm = () => { setForm(emptyForm); setEditingId(null); setShowForm(false) }
   const openEdit = item => {
@@ -37,7 +39,7 @@ export default function StokPage() {
     }
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return alert('Sesi login berakhir. Silakan login ulang.')
-    const payload = { ...form, quantity: Number(form.quantity), min_quantity: Number(form.min_quantity), cost_price: Number(form.cost_price), updated_at: new Date().toISOString() }
+    const payload = { ...form, quantity: Number(form.quantity), min_quantity: Number(form.min_quantity), cost_price: Number(form.cost_price), updated_at: new Date().toISOString(), business_id: businessId }
     const query = editingId
       ? supabase.from('inventory_items').update(payload).eq('id', editingId)
       : supabase.from('inventory_items').insert([{ ...payload, user_id: user.id }])
