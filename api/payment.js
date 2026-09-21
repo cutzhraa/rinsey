@@ -28,13 +28,14 @@ export default async function handler(req, res) {
       return res.status(400).json({ status: 'error', message: 'Nominal transaksi tidak valid' })
     }
 
-    const snap = new midtransClient.Snap({
+    const coreApi = new midtransClient.CoreApi({
       isProduction: false,
       serverKey: process.env.MIDTRANS_SERVER_KEY || 'Mid-server-4QYh69ZUsuCLYgTcS9L7p352',
       clientKey: process.env.MIDTRANS_CLIENT_KEY || 'Mid-client-mPIRBZUCLlsliqWs'
     })
 
     const parameter = {
+      payment_type: 'qris',
       transaction_details: {
         order_id: `${order_id || 'ORDER'}-${Date.now()}`,
         gross_amount: amount
@@ -43,11 +44,23 @@ export default async function handler(req, res) {
         first_name: customer_name || 'Pelanggan Laundry',
         phone: customer_phone || '08123456789'
       },
-      enabled_payments: ['qris', 'gopay']
     }
 
-    const transaction = await snap.createTransaction(parameter)
-    return res.status(200).json({ status: 'success', token: transaction.token })
+    const transaction = await coreApi.charge(parameter)
+    const qrCodeAction = transaction.actions?.find(action => action.name === 'generate-qr-code')
+
+    if (!qrCodeAction?.url) {
+      return res.status(502).json({
+        status: 'error',
+        message: 'Midtrans tidak mengembalikan QRIS untuk transaksi ini'
+      })
+    }
+
+    return res.status(200).json({
+      status: 'success',
+      order_id: transaction.order_id,
+      qr_url: qrCodeAction.url
+    })
   } catch (error) {
     console.error('Vercel Midtrans Serverless Error:', error)
     return res.status(500).json({ 
