@@ -194,15 +194,6 @@ export default function TransaksiPage() {
       return
     }
 
-    const showStatusHistory = async (order) => {
-      const { data, error } = await supabase
-        .from('order_status_history')
-        .select('id, status, changed_by, created_at')
-        .eq('order_id', order.id)
-        .order('created_at', { ascending: true })
-      if (error) return alert('Gagal memuat riwayat status: ' + error.message)
-      setStatusHistory({ order, items: data || [] })
-    }
     const currentIndex = Math.max(orderStatuses.findIndex(status => status.value === order.status), 0)
     const nextStatus = orderStatuses[currentIndex + 1]
     if (!nextStatus) return
@@ -214,6 +205,16 @@ export default function TransaksiPage() {
 
     if (error) return alert(`Gagal mengubah status ke ${nextStatus.label}: ${error.message}`)
     setOrders(prev => prev.map(item => item.id === order.id ? { ...item, status: nextStatus.value } : item))
+  }
+
+  const showStatusHistory = async (order) => {
+    const { data, error } = await supabase
+      .from('order_status_history')
+      .select('id, status, changed_by, created_at')
+      .eq('order_id', order.id)
+      .order('created_at', { ascending: true })
+    if (error) return alert('Gagal memuat riwayat status: ' + error.message)
+    setStatusHistory({ order, items: data || [] })
   }
 
   // Direct Kirim Struk via WhatsApp
