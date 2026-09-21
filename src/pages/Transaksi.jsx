@@ -9,6 +9,7 @@ export default function TransaksiPage() {
   const [loading, setLoading] = useState(false)
   const [showAdd, setShowAdd] = useState(false)
   const [search, setSearch] = useState('')
+  const [qrisPayment, setQrisPayment] = useState(null)
 
   // State Form Transaksi Baru
   const [form, setForm] = useState({
@@ -39,10 +40,9 @@ export default function TransaksiPage() {
   const selectedService = services.find(s => s.id === form.service_id)
   const calculatedTotal = selectedService ? (selectedService.price * Number(form.weight || 0)) : 0
 
-  // Function Panggil Pop-up Payment Midtrans Snap
+  // Buat QRIS langsung agar QR tetap tersedia di laptop maupun HP.
   const triggerMidtransPayment = async (order) => {
     try {
-      // 1. Minta Snap Token dari Backend Serverless Vercel
       const response = await axios.post('/api/payment', {
         order_id: order.invoice_no || `RINSEY-${order.id}`,
         gross_amount: order.total_price,
@@ -50,39 +50,21 @@ export default function TransaksiPage() {
         customer_phone: order.customers?.phone || ''
       })
 
-      const { token } = response.data
+      const { qr_url: qrUrl, order_id: paymentOrderId } = response.data
 
-      if (!token) {
-        return alert('Gagal mendapatkan token pembayaran dari Midtrans')
-      }
-
-      // 2. Tampilkan Modal Snap Midtrans
-      if (window.snap) {
-        window.snap.pay(token, {
-          onSuccess: async function (result) {
-            alert('Pembayaran Midtrans Berhasil!')
-            await supabase.from('orders').update({ payment_status: 'lunas' }).eq('id', order.id)
-            setOrders(prev => prev.map(item => item.id === order.id ? { ...item, payment_status: 'lunas' } : item))
-          },
-          onPending: function (result) {
-            console.log('Menunggu pembayaran...', result)
-          },
-          onError: function (result) {
-            alert('Pembayaran Gagal atau Dibatalkan!')
-          },
-          onClose: function () {
-            console.log('Widget pembayaran ditutup oleh pelanggan')
-          }
+      if (qrUrl) {
+        setQrisPayment({
+          qrUrl,
+          orderId: paymentOrderId || order.invoice_no || order.id,
+          amount: order.total_price
         })
-      } else {
-        alert('Script Midtrans Snap belum terpasang di index.html!')
+        return
       }
+
+      throw new Error('QRIS tidak tersedia dari server pembayaran')
     } catch (error) {
       console.error('Midtrans payment error:', error)
-      // Hanya tampilkan alert jika Snap gagal dipanggil sama sekali
-      if (!window.snap) {
-        alert('Gagal menghubungkan ke server pembayaran Midtrans')
-      }
+      alert(error.response?.data?.message || error.message || 'Gagal membuat QRIS')
     }
   }
 
@@ -179,6 +161,80 @@ export default function TransaksiPage() {
 
   return (
     <div>
+      {qrisPayment && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="qris-modal-title"
+          onClick={() => setQrisPayment(null)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 1000,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '20px',
+            background: 'rgba(15, 23, 42, 0.65)'
+          }}
+        >
+          <div
+            onClick={event => event.stopPropagation()}
+            style={{
+              width: 'min(100%, 420px)',
+              maxHeight: 'calc(100vh - 40px)',
+              overflowY: 'auto',
+              background: 'white',
+              borderRadius: '20px',
+              padding: '24px',
+              textAlign: 'center',
+              boxShadow: '0 20px 50px rgba(15, 23, 42, 0.25)'
+            }}
+          >
+            <button
+              type="button"
+              aria-label="Tutup QRIS"
+              onClick={() => setQrisPayment(null)}
+              style={{ float: 'right', border: 'none', background: 'transparent', fontSize: '22px', cursor: 'pointer', color: '#64748b' }}
+            >
+              ×
+            </button>
+            <h2 id="qris-modal-title" style={{ margin: '4px 0 8px', color: '#111827', fontSize: '22px' }}>Scan QRIS</h2>
+            <p style={{ margin: '0 0 16px', color: '#64748b', fontSize: '13px' }}>
+              Scan QR ini dari HP lain atau simpan gambarnya untuk dibayar nanti.
+            </p>
+            <img
+              src={qrisPayment.qrUrl}
+              alt={`QRIS untuk ${qrisPayment.orderId}`}
+              style={{ display: 'block', width: 'min(100%, 320px)', aspectRatio: '1', objectFit: 'contain', margin: '0 auto 16px', border: '1px solid #e2e8f0', borderRadius: '12px' }}
+            />
+            <div style={{ fontWeight: '800', fontSize: '18px', color: '#111827', marginBottom: '16px' }}>
+              Rp {qrisPayment.amount.toLocaleString('id-ID')}
+            </div>
+            <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap' }}>
+              <a
+                href={qrisPayment.qrUrl}
+                download={`qris-${qrisPayment.orderId}.png`}
+                target="_blank"
+                rel="noreferrer"
+                style={{ background: '#4361EE', color: 'white', padding: '11px 16px', borderRadius: '10px', fontWeight: '700', textDecoration: 'none' }}
+              >
+                Download QRIS
+              </a>
+              <button
+                type="button"
+                onClick={() => setQrisPayment(null)}
+                style={{ background: '#F1F5F9', color: '#334155', border: 'none', padding: '11px 16px', borderRadius: '10px', fontWeight: '700', cursor: 'pointer' }}
+              >
+                Tutup
+              </button>
+            </div>
+            <p style={{ margin: '14px 0 0', color: '#94a3b8', fontSize: '11px' }}>
+              Jika tombol download tidak menyimpan otomatis di HP, buka gambarnya lalu tekan lama untuk menyimpan.
+            </p>
+          </div>
+        </div>
+      )}
       {/* HEADER */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>

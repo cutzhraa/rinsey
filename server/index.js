@@ -14,13 +14,13 @@ app.get('/', (req, res) => {
   res.send('Rinsey Backend API Running! 🧺')
 })
 
-const snap = new midtransClient.Snap({
+const coreApi = new midtransClient.CoreApi({
   isProduction: process.env.MIDTRANS_IS_PRODUCTION === 'true',
   serverKey: process.env.MIDTRANS_SERVER_KEY,
   clientKey: process.env.MIDTRANS_CLIENT_KEY
 })
 
-app.post('/api/payment/create', async (req, res) => {
+app.post(['/api/payment', '/api/payment/create'], async (req, res) => {
   try {
     const { order_id, gross_amount, customer_name, customer_phone } = req.body
 
@@ -30,6 +30,7 @@ app.post('/api/payment/create', async (req, res) => {
     }
 
     const parameter = {
+      payment_type: 'qris',
       transaction_details: {
         order_id: `${order_id}-${Date.now()}`,
         gross_amount: amount
@@ -38,11 +39,23 @@ app.post('/api/payment/create', async (req, res) => {
         first_name: customer_name || 'Pelanggan Laundry',
         phone: customer_phone || '08123456789'
       },
-      enabled_payments: ['qris', 'gopay']
     }
 
-    const transaction = await snap.createTransaction(parameter)
-    res.json({ status: 'success', token: transaction.token })
+    const transaction = await coreApi.charge(parameter)
+    const qrCodeAction = transaction.actions?.find(action => action.name === 'generate-qr-code')
+
+    if (!qrCodeAction?.url) {
+      return res.status(502).json({
+        status: 'error',
+        message: 'Midtrans tidak mengembalikan QRIS untuk transaksi ini'
+      })
+    }
+
+    res.json({
+      status: 'success',
+      order_id: transaction.order_id,
+      qr_url: qrCodeAction.url
+    })
   } catch (error) {
     console.error('Midtrans Error:', error.response?.data || error.message)
     res.status(500).json({ status: 'error', message: error.message })
