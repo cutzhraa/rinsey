@@ -76,9 +76,8 @@ export default function Layout({ children }){
               </div>
               <div style={{display:'flex', flexDirection:'column', alignItems:'flex-start', gap:'1px', maxWidth:'180px'}}>
                 <span style={{fontSize:'12px', fontWeight:'800', color:'#111827', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
-                  {user?.user_metadata?.full_name || 'Pemilik Laundry'}
+                  {user?.user_metadata?.full_name || 'Rinsey'}
                 </span>
-                <span style={{fontSize:'11px', color:'#64748b'}}>Akun saya⌄</span>
               </div>
             </button>
             {profileOpen && (
@@ -87,7 +86,7 @@ export default function Layout({ children }){
                 style={{position:'absolute', top:'52px', right:0, width:'250px', padding:'8px', background:'white', border:'1px solid #e2e8f0', borderRadius:'14px', boxShadow:'0 12px 30px rgba(15,23,42,0.14)', zIndex:60}}
               >
                 <div style={{padding:'10px 12px', borderBottom:'1px solid #f1f5f9', marginBottom:'6px'}}>
-                  <div style={{fontSize:'12px', fontWeight:'800', color:'#111827'}}>Pemilik Laundry</div>
+                  <div style={{fontSize:'12px', fontWeight:'800', color:'#111827'}}>Rinsey</div>
                   <div style={{fontSize:'12px', color:'#64748b', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
                     {user?.email || 'Akun aktif'}
                   </div>
