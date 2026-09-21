@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { BarChart, Bar, XAxis, Tooltip, ResponsiveContainer } from 'recharts'
+import { useAccess } from '../components/Layout'
 
 export default function Dashboard() {
-  const [stats, setStats] = useState({ customers: 0, orders: 0, revenue: 0, pending: 0 })
+  const { role } = useAccess()
+  const [stats, setStats] = useState({ customers: 0, orders: 0, revenue: 0, pending: 0, todayOrders: 0, unpaid: 0, readyPickup: 0, processing: 0, overdue: 0 })
   const [chart, setChart] = useState([])
   const [statusCount, setStatusCount] = useState({})
   const [recent, setRecent] = useState([])
@@ -13,13 +15,19 @@ export default function Dashboard() {
     async function load() {
       setLoading(true)
       const { count: custCount } = await supabase.from('customers').select('id', { count: 'exact', head: true })
-      const { data: allOrders } = await supabase.from('orders').select('id, total_price, status, created_at')
+      const { data: allOrders } = await supabase.from('orders').select('id, total_price, status, payment_status, estimated_completion_date, created_at')
       const { data: recentOrders } = await supabase.from('orders').select('*, customers(name)').order('created_at', { ascending: false }).limit(5)
 
       // FIX: Pakai status 'masuk' sesuai DDL Supabase
       const pending = allOrders?.filter(o => o.status === 'masuk' || o.status === 'dicuci').length || 0
       const revenue = allOrders?.reduce((s, o) => s + (o.total_price || 0), 0) || 0
-      setStats({ customers: custCount || 0, orders: allOrders?.length || 0, revenue, pending })
+      const today = new Date().toISOString().slice(0, 10)
+      const todayOrders = allOrders?.filter(o => o.created_at?.slice(0, 10) === today).length || 0
+      const unpaid = allOrders?.filter(o => o.payment_status !== 'lunas').length || 0
+      const readyPickup = allOrders?.filter(o => o.status === 'selesai').length || 0
+      const processing = allOrders?.filter(o => ['masuk', 'dicuci', 'disetrika'].includes(o.status)).length || 0
+      const overdue = allOrders?.filter(o => o.estimated_completion_date && o.estimated_completion_date < today && !['selesai', 'diambil'].includes(o.status)).length || 0
+      setStats({ customers: custCount || 0, orders: allOrders?.length || 0, revenue, pending, todayOrders, unpaid, readyPickup, processing, overdue })
       setRecent(recentOrders || [])
 
       // Status breakdown
@@ -45,19 +53,34 @@ export default function Dashboard() {
     load()
   }, [])
 
-  const cards = [
-    { label: 'TOTAL PELANGGAN', value: `${stats.customers} Orang`, sub: 'Customer aktif', color: '#4361EE' },
-    { label: 'TOTAL PESANAN', value: `${stats.orders} Pesanan`, sub: `${stats.pending} perlu diproses`, color: '#06D6A0' },
-    { label: 'PENDAPATAN', value: `Rp ${stats.revenue.toLocaleString('id-ID')}`, sub: 'Akumulasi total', color: '#111' },
-    { label: 'PERLU DIPROSES', value: `${stats.pending}`, sub: 'Status masuk / dicuci', color: '#FF6B6B' },
-  ]
+  const cardsByRole = {
+    staff: [
+      { label: 'PERLU DIPROSES', value: `${stats.processing}`, sub: 'Masuk / dicuci / disetrika', color: '#4361EE' },
+      { label: 'SIAP DIAMBIL', value: `${stats.readyPickup}`, sub: 'Menunggu pelanggan', color: '#06D6A0' },
+      { label: 'TERLAMBAT', value: `${stats.overdue}`, sub: 'Melewati estimasi selesai', color: '#FF6B6B' },
+    ],
+    kasir: [
+      { label: 'TRANSAKSI HARI INI', value: `${stats.todayOrders}`, sub: 'Pesanan baru hari ini', color: '#4361EE' },
+      { label: 'BELUM LUNAS', value: `${stats.unpaid}`, sub: 'Perlu ditindaklanjuti', color: '#FF6B6B' },
+      { label: 'SIAP DIAMBIL', value: `${stats.readyPickup}`, sub: 'Bisa diproses saat diambil', color: '#06D6A0' },
+    ],
+    default: [
+      { label: 'TOTAL PELANGGAN', value: `${stats.customers} Orang`, sub: 'Customer aktif', color: '#4361EE' },
+      { label: 'TOTAL PESANAN', value: `${stats.orders} Pesanan`, sub: `${stats.pending} perlu diproses`, color: '#06D6A0' },
+      { label: 'PENDAPATAN', value: `Rp ${stats.revenue.toLocaleString('id-ID')}`, sub: 'Akumulasi total', color: '#111' },
+      { label: 'BELUM LUNAS', value: `${stats.unpaid}`, sub: 'Pembayaran perlu dicek', color: '#FF6B6B' },
+    ],
+  }
+  const cards = cardsByRole[role] || cardsByRole.default
 
   if (loading) return <div style={{ padding: '20px', color: '#64748b' }}>Memuat data dashboard...</div>
 
   return (
     <div>
       <h1 style={{ fontSize: '28px', fontWeight: '800', color: '#111' }}>Dashboard</h1>
-      <p style={{ color: '#64748b', marginTop: '4px' }}>Ringkasan laundry hari ini</p>
+      <p style={{ color: '#64748b', marginTop: '4px' }}>
+        {role === 'staff' ? 'Pantau cucian yang sedang diproses.' : role === 'kasir' ? 'Pantau transaksi dan pembayaran hari ini.' : 'Ringkasan operasional dan keuangan laundry.'}
+      </p>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', marginTop: '24px' }}>
         {cards.map(c => (
