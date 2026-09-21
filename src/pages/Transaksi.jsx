@@ -223,19 +223,28 @@ export default function TransaksiPage() {
     
     let phone = o.customers.phone.trim()
     if (phone.startsWith('0')) phone = '62' + phone.slice(1)
+    const statusLabel = orderStatuses.find(status => status.value === o.status)?.label || o.status || '-'
+    const paymentMethod = { cash: 'Cash / Tunai', qris: 'QRIS', transfer: 'Bank Transfer' }[o.payment_method] || o.payment_method || '-'
+    const transactionDate = o.created_at
+      ? new Date(o.created_at).toLocaleDateString('id-ID')
+      : new Date().toLocaleDateString('id-ID')
 
-    const text = `*RINSEY LAUNDRY - NOTA TRANSAKSI*\n` +
-      `--------------------------------\n` +
-      `No. Invoice : ${o.invoice_no || '-'}\n` +
-      `Pelanggan   : ${o.customers?.name}\n` +
-      `Layanan     : ${o.services?.name}\n` +
-      `Jumlah/Berat: ${o.weight} ${o.services?.unit || 'kg'}\n` +
-      `Metode Bayar: ${o.payment_method?.toUpperCase()}\n` +
-      `Total Bayar : Rp ${o.total_price?.toLocaleString('id-ID')}\n` +
-      `Status Bayar: ${o.payment_status?.toUpperCase()}\n` +
-      `Estimasi Selesai: ${o.estimated_completion_date ? new Date(`${o.estimated_completion_date}T00:00:00`).toLocaleDateString('id-ID') : '-'}\n` +
-      `--------------------------------\n` +
-      `Terima kasih telah mempercayakan cucian Anda di Rinsey Laundry! 🧺`
+    const text = `*NOTA LAUNDRY*\n` +
+      `*RINSEY.*\n` +
+      `━━━━━━━━━━━━━━━━━━\n` +
+      `*No. Invoice:* ${o.invoice_no || '-'}\n` +
+      `*Tanggal:* ${transactionDate}\n` +
+      `*Pelanggan:* ${o.customers?.name || 'Pelanggan Umum'}\n` +
+      `━━━━━━━━━━━━━━━━━━\n` +
+      `*Layanan:* ${o.services?.name || '-'}\n` +
+      `*Jumlah/Berat:* ${o.weight || 0} ${o.services?.unit || 'kg'}\n` +
+      `*Total:* Rp ${Number(o.total_price || 0).toLocaleString('id-ID')}\n` +
+      `*Pembayaran:* ${paymentMethod}\n` +
+      `*Status Bayar:* ${o.payment_status === 'lunas' ? 'LUNAS' : 'BELUM LUNAS'}\n` +
+      `*Status Cucian:* ${statusLabel}\n` +
+      `*Estimasi Selesai:* ${o.estimated_completion_date ? new Date(`${o.estimated_completion_date}T00:00:00`).toLocaleDateString('id-ID') : 'Belum ditentukan'}\n` +
+      `━━━━━━━━━━━━━━━━━━\n` +
+      `Terima kasih telah mempercayakan cucian Anda kepada kami. 🧺`
 
     const waUrl = `https://wa.me/${phone}?text=${encodeURIComponent(text)}`
     window.open(waUrl, '_blank')
