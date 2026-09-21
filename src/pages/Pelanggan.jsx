@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { useAccess } from '../components/Layout'
 
 export default function PelangganPage() {
+  const { businessId } = useAccess()
   const [list, setList] = useState([])
   const [orderStatsMap, setOrderStatsMap] = useState({})
   const [search, setSearch] = useState('')
@@ -95,7 +97,7 @@ export default function PelangganPage() {
       }
     } else {
       // --- MODE TAMBAH BARU ---
-      const payload = { ...form, user_id: user.id }
+      const payload = { ...form, user_id: user.id, business_id: businessId }
       const { data, error } = await supabase.from('customers').insert([payload]).select()
 
       setLoading(false)

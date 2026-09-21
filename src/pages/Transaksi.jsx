@@ -13,7 +13,7 @@ const orderStatuses = [
 ]
 
 export default function TransaksiPage() {
-  const { role } = useAccess()
+  const { role, businessId } = useAccess()
   const [orders, setOrders] = useState([])
   const [customers, setCustomers] = useState([])
   const [services, setServices] = useState([])
@@ -129,7 +129,7 @@ export default function TransaksiPage() {
 
     const query = editingId
       ? supabase.from('orders').update(payload).eq('id', editingId)
-      : supabase.from('orders').insert([{ ...payload, user_id: user.id, invoice_no: `INV-${Date.now().toString().slice(-6)}` }])
+      : supabase.from('orders').insert([{ ...payload, user_id: user.id, business_id: businessId, invoice_no: `INV-${Date.now().toString().slice(-6)}` }])
     const { data, error } = await query.select('*, customers(name, phone), services(name, unit, price)')
 
     setLoading(false)

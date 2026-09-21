@@ -47,7 +47,7 @@ export default function Layout({ children }){
       }
       const activeContext = context?.[0]
       if (activeContext) {
-        setBusiness({ business_name: activeContext.out_business_name })
+        setBusiness({ id: activeContext.out_business_id, business_name: activeContext.out_business_name })
         setRole(normalizeRole(activeContext.out_role))
       } else {
         setContextError('Akun ini belum memiliki akses ke bisnis.')
@@ -64,7 +64,7 @@ export default function Layout({ children }){
 
   const route = routeForPath(location.pathname)
   const unauthorized = !contextLoading && (!role || (route && !canAccess(role, route)))
-  const accessValue = { role, loading: contextLoading, error: contextError }
+  const accessValue = { role, businessId: business?.id || null, loading: contextLoading, error: contextError }
 
   return (
     <AccessContext.Provider value={accessValue}>
