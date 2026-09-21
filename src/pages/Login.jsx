@@ -28,8 +28,8 @@ export default function Login() {
         boxShadow:'0 10px 40px rgba(0,0,0,0.08)', border:'1px solid #f0f0f0'
       }}>
         <div style={{textAlign:'center', marginBottom:'24px'}}>
-          <div style={{fontSize:'40px'}}>🧺</div>
-          <h2 style={{margin:'8px 0 4px', fontWeight:'800', color:'#111827'}}>Rinsey Laundry</h2>
+          <img src="/rinsey.jpg" alt="Rinsey" style={{ width: '58px', height: '58px', borderRadius: '18px', objectFit: 'cover' }} />
+          <h2 style={{margin:'12px 0 4px', fontWeight:'800', color:'#111827'}}>Rinsey Laundry</h2>
           <p style={{margin:0, color:'#9ca3af', fontSize:'14px'}}>Masuk untuk kelola cucian</p>
         </div>
 
