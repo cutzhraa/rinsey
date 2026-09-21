@@ -168,13 +168,19 @@ export default function TransaksiPage() {
     }
 
     const handleAdvanceStatus = async (order) => {
-      const currentIndex = orderStatuses.findIndex(status => status.value === order.status)
+      const currentIndex = Math.max(orderStatuses.findIndex(status => status.value === order.status), 0)
       const nextStatus = orderStatuses[currentIndex + 1]
       if (!nextStatus) return
 
-      const { error } = await supabase.from('orders').update({ status: nextStatus.value }).eq('id', order.id)
-      if (error) return alert('Gagal mengubah status: ' + error.message)
-      setOrders(prev => prev.map(item => item.id === order.id ? { ...item, status: nextStatus.value } : item))
+      const { data, error } = await supabase
+        .from('orders')
+        .update({ status: nextStatus.value })
+        .eq('id', order.id)
+        .select('id, status')
+
+      if (error) return alert(`Gagal mengubah status ke ${nextStatus.label}: ${error.message}`)
+      if (!data?.length) return alert('Status tidak berubah. Pastikan transaksi ini milik akun yang sedang login dan policy RLS orders sudah aktif.')
+      setOrders(prev => prev.map(item => item.id === order.id ? { ...item, status: data[0].status } : item))
     }
   }
 
@@ -444,6 +450,7 @@ export default function TransaksiPage() {
               </div>
               {o.status !== 'diambil' && (
                 <button
+                  type="button"
                   onClick={() => handleAdvanceStatus(o)}
                   title="Pindahkan ke tahap berikutnya"
                   style={{ marginTop: '8px', background: '#111827', color: 'white', border: 'none', padding: '6px 10px', borderRadius: '8px', fontSize: '11px', fontWeight: '700', cursor: 'pointer' }}
