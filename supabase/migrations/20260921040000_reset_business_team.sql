@@ -2,6 +2,10 @@
 -- This resets only the team membership layer, not laundry data or auth users.
 
 drop trigger if exists business_profiles_owner_membership on public.business_profiles;
+drop policy if exists "Members can view their own business team"
+  on public.business_members;
+drop policy if exists "Members can view their business team"
+  on public.business_members;
 drop function if exists public.add_business_member_by_email(text, text);
 drop function if exists public.get_business_team();
 drop function if exists public.get_my_business_role();
