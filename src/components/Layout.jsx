@@ -1,6 +1,11 @@
 import { useState, useEffect } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { canAccess, normalizeRole, ROLE_LABELS, routeForPath } from '../lib/access'
+import { createContext, useContext } from 'react'
+
+export const AccessContext = createContext({ role: null, loading: true, error: null })
+export const useAccess = () => useContext(AccessContext)
 
 export default function Layout({ children }){
   const [open, setOpen] = useState(false)
@@ -10,6 +15,8 @@ export default function Layout({ children }){
   const [business, setBusiness] = useState(null)
   const [isMobile, setIsMobile] = useState(false)
   const [role, setRole] = useState(null)
+  const [contextLoading, setContextLoading] = useState(true)
+  const [contextError, setContextError] = useState('')
   const location = useLocation()
   const navigate = useNavigate()
 
@@ -26,21 +33,26 @@ export default function Layout({ children }){
     const loadContext = async () => {
       const { data: userData, error: userError } = await supabase.auth.getUser()
       if (userError) {
-        console.error('Gagal memuat profil pengguna:', userError)
+        setContextError('Gagal memuat profil pengguna: ' + userError.message)
+        setContextLoading(false)
         return
       }
       setUser(userData.user)
 
       const { data: context, error: contextError } = await supabase.rpc('get_my_business_context')
       if (contextError) {
-        console.error('Gagal memuat role bisnis:', contextError)
+        setContextError('Gagal memuat role bisnis: ' + contextError.message)
+        setContextLoading(false)
         return
       }
       const activeContext = context?.[0]
       if (activeContext) {
         setBusiness({ business_name: activeContext.out_business_name })
-        setRole(activeContext.out_role)
+        setRole(normalizeRole(activeContext.out_role))
+      } else {
+        setContextError('Akun ini belum memiliki akses ke bisnis.')
       }
+      setContextLoading(false)
     }
     loadContext()
   }, [])
@@ -50,7 +62,12 @@ export default function Layout({ children }){
     navigate('/login')
   }
 
+  const route = routeForPath(location.pathname)
+  const unauthorized = !contextLoading && (!role || (route && !canAccess(role, route)))
+  const accessValue = { role, loading: contextLoading, error: contextError }
+
   return (
+    <AccessContext.Provider value={accessValue}>
     <div style={{display:'flex', minHeight:'100vh', background:'#f8fafc'}}>
       {open && isMobile && (
         <div onClick={()=>setOpen(false)} style={{position:'fixed', inset:0, background:'rgba(0,0,0,0.4)', zIndex:40}}></div>
@@ -71,11 +88,11 @@ export default function Layout({ children }){
           <div style={{padding:'20px', fontWeight:'900', fontSize:'22px'}}>{business?.business_name || 'RINSEY.'}</div>
           <nav style={{flex:1, padding:'10px', display:'flex', flexDirection:'column', gap:'6px'}}>
             <NavLink to="/" style={({isActive})=>({padding:'12px', borderRadius:'12px', background:isActive?'#111':'transparent', color:isActive?'white':'#64748b', textDecoration:'none', fontWeight:'600'})}>Dashboard</NavLink>
-            <NavLink to="/pelanggan" style={({isActive})=>({padding:'12px', borderRadius:'12px', background:isActive?'#111':'transparent', color:isActive?'white':'#64748b', textDecoration:'none', fontWeight:'600'})}>Pelanggan</NavLink>
-            <NavLink to="/transaksi" style={({isActive})=>({padding:'12px', borderRadius:'12px', background:isActive?'#111':'transparent', color:isActive?'white':'#64748b', textDecoration:'none', fontWeight:'600'})}>Transaksi</NavLink>
-            <NavLink to="/keuangan" style={({isActive})=>({padding:'12px', borderRadius:'12px', background:isActive?'#111':'transparent', color:isActive?'white':'#64748b', textDecoration:'none', fontWeight:'600'})}>Keuangan</NavLink>
-            <NavLink to="/stok" style={({isActive})=>({padding:'12px', borderRadius:'12px', background:isActive?'#111':'transparent', color:isActive?'white':'#64748b', textDecoration:'none', fontWeight:'600'})}>Stok</NavLink>
-            {role === 'owner' && <NavLink to="/tim" style={({isActive})=>({padding:'12px', borderRadius:'12px', background:isActive?'#111':'transparent', color:isActive?'white':'#64748b', textDecoration:'none', fontWeight:'600'})}>Kelola Tim</NavLink>}
+            {canAccess(role, 'customers') && <NavLink to="/pelanggan" style={({isActive})=>({padding:'12px', borderRadius:'12px', background:isActive?'#111':'transparent', color:isActive?'white':'#64748b', textDecoration:'none', fontWeight:'600'})}>Pelanggan</NavLink>}
+            {canAccess(role, 'transactions') && <NavLink to="/transaksi" style={({isActive})=>({padding:'12px', borderRadius:'12px', background:isActive?'#111':'transparent', color:isActive?'white':'#64748b', textDecoration:'none', fontWeight:'600'})}>Transaksi</NavLink>}
+            {canAccess(role, 'finance') && <NavLink to="/keuangan" style={({isActive})=>({padding:'12px', borderRadius:'12px', background:isActive?'#111':'transparent', color:isActive?'white':'#64748b', textDecoration:'none', fontWeight:'600'})}>Keuangan</NavLink>}
+            {canAccess(role, 'inventory') && <NavLink to="/stok" style={({isActive})=>({padding:'12px', borderRadius:'12px', background:isActive?'#111':'transparent', color:isActive?'white':'#64748b', textDecoration:'none', fontWeight:'600'})}>Stok</NavLink>}
+            {canAccess(role, 'team') && <NavLink to="/tim" style={({isActive})=>({padding:'12px', borderRadius:'12px', background:isActive?'#111':'transparent', color:isActive?'white':'#64748b', textDecoration:'none', fontWeight:'600'})}>Kelola Tim</NavLink>}
           </nav>
         </div>
       </div>
@@ -119,7 +136,7 @@ export default function Layout({ children }){
                     {user?.email || 'Akun aktif'}
                   </div>
                   <div style={{fontSize:'12px', color:'#64748b', marginTop:'4px'}}>
-                    Role: {role ? role.charAt(0).toUpperCase() + role.slice(1) : 'Memuat...'}
+                    Role: {role ? ROLE_LABELS[role] || role : 'Memuat...'}
                   </div>
                 </div>
                 <button
@@ -134,9 +151,18 @@ export default function Layout({ children }){
           </div>
         </div>
         <div style={{padding: isMobile ? '16px' : '24px'}}>
-          {children}
+          {contextLoading ? <p style={{ color: '#64748b' }}>Memuat akses pengguna...</p> : contextError ? (
+            <div style={{ background: '#FEF2F2', color: '#991B1B', padding: '16px', borderRadius: '12px' }}>{contextError}</div>
+          ) : unauthorized ? (
+            <div style={{ background: '#FFF7ED', color: '#9A3412', padding: '20px', borderRadius: '12px' }}>
+              <h2 style={{ marginTop: 0 }}>Akses tidak diizinkan</h2>
+              <p>Role {ROLE_LABELS[role] || role} tidak memiliki akses ke halaman ini.</p>
+              <button onClick={() => navigate('/')} style={{ background: '#111', color: 'white', border: 0, borderRadius: '8px', padding: '10px 14px', fontWeight: 700 }}>Kembali ke dashboard</button>
+            </div>
+          ) : children}
         </div>
       </div>
     </div>
+    </AccessContext.Provider>
   )
 }
