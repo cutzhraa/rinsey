@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase'
 export default function Layout({ children }){
   const [open, setOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
+  const [logoError, setLogoError] = useState(false)
   const [user, setUser] = useState(null)
   const [isMobile, setIsMobile] = useState(false)
   const location = useLocation()
@@ -71,9 +72,18 @@ export default function Layout({ children }){
               aria-haspopup="menu"
               style={{display:'flex', alignItems:'center', gap:'10px', padding:'4px 8px 4px 4px', border:'1px solid #e2e8f0', borderRadius:'14px', background:'white', cursor:'pointer'}}
             >
-              <div style={{width:'36px', height:'36px', borderRadius:'99px', background:'#111', color:'white', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:'700'}}>
-                {(user?.user_metadata?.full_name || user?.email || 'R').charAt(0).toUpperCase()}
-              </div>
+              {logoError ? (
+                <div style={{width:'36px', height:'36px', borderRadius:'99px', background:'#111', color:'white', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:'700'}}>
+                  R
+                </div>
+              ) : (
+                <img
+                  src="/rinsey.jpg"
+                  alt="Rinsey"
+                  onError={() => setLogoError(true)}
+                  style={{width:'36px', height:'36px', borderRadius:'99px', objectFit:'cover'}}
+                />
+              )}
               <div style={{display:'flex', flexDirection:'column', alignItems:'flex-start', gap:'1px', maxWidth:'180px'}}>
                 <span style={{fontSize:'12px', fontWeight:'800', color:'#111827', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
                   {user?.user_metadata?.full_name || 'Rinsey'}
