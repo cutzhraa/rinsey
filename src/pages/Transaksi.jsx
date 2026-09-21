@@ -252,7 +252,7 @@ export default function TransaksiPage() {
               style={{ float: 'right', border: 'none', background: 'transparent', fontSize: '22px', cursor: 'pointer', color: '#64748b' }}
             >
               ×
-            </button>}
+            </button>
             <h2 id="qris-modal-title" style={{ margin: '4px 0 8px', color: '#111827', fontSize: '22px' }}>QRIS Pembayaran Pelanggan</h2>
             <p style={{ margin: '0 0 16px', color: '#64748b', fontSize: '13px' }}>
               Minta pelanggan scan QR ini untuk membayar, atau simpan gambarnya untuk dikirim nanti.
