@@ -84,16 +84,26 @@ export default function KeuanganPage() {
       </div>
 
       {showForm && (
-        <form onSubmit={handleSubmit} style={{ background: 'white', padding: '18px', borderRadius: '16px', border: '1px solid #eef2f7', marginTop: '16px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '12px' }}>
-          <select value={form.type} onChange={event => setForm({ ...form, type: event.target.value })} style={{ padding: '11px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
-            <option value="expense">Pengeluaran</option>
-            <option value="income">Pemasukan lain</option>
-          </select>
-          <input placeholder="Kategori (contoh: Deterjen)" value={form.category} onChange={event => setForm({ ...form, category: event.target.value })} required style={{ padding: '11px', borderRadius: '10px', border: '1px solid #e2e8f0' }} />
-          <input placeholder="Keterangan (opsional)" value={form.description} onChange={event => setForm({ ...form, description: event.target.value })} style={{ padding: '11px', borderRadius: '10px', border: '1px solid #e2e8f0' }} />
-          <input type="number" min="1" placeholder="Nominal" value={form.amount} onChange={event => setForm({ ...form, amount: event.target.value })} required style={{ padding: '11px', borderRadius: '10px', border: '1px solid #e2e8f0' }} />
-          <input type="date" value={form.transaction_date} onChange={event => setForm({ ...form, transaction_date: event.target.value })} required style={{ padding: '11px', borderRadius: '10px', border: '1px solid #e2e8f0' }} />
-          <button type="submit" style={{ background: '#111', color: 'white', border: 'none', borderRadius: '10px', fontWeight: '700', cursor: 'pointer' }}>Simpan Catatan</button>
+        <form onSubmit={handleSubmit} style={{ background: 'white', padding: '18px', borderRadius: '16px', border: '1px solid #eef2f7', marginTop: '16px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: '14px' }}>
+          <label style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '12px', fontWeight: '700', color: '#475569' }}>JENIS CATATAN
+            <select value={form.type} onChange={event => setForm({ ...form, type: event.target.value })} style={{ padding: '11px', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '14px' }}>
+              <option value="expense">Pengeluaran</option>
+              <option value="income">Pemasukan lain</option>
+            </select>
+          </label>
+          <label style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '12px', fontWeight: '700', color: '#475569' }}>KATEGORI
+            <input placeholder="Contoh: Deterjen / Listrik" value={form.category} onChange={event => setForm({ ...form, category: event.target.value })} required style={{ padding: '11px', borderRadius: '10px', border: '1px solid #e2e8f0', fontWeight: '400', fontSize: '14px' }} />
+          </label>
+          <label style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '12px', fontWeight: '700', color: '#475569' }}>KETERANGAN
+            <input placeholder="Contoh: Beli 2 botol" value={form.description} onChange={event => setForm({ ...form, description: event.target.value })} style={{ padding: '11px', borderRadius: '10px', border: '1px solid #e2e8f0', fontWeight: '400', fontSize: '14px' }} />
+          </label>
+          <label style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '12px', fontWeight: '700', color: '#475569' }}>NOMINAL (RP)
+            <input type="number" min="1" placeholder="Contoh: 50000" value={form.amount} onChange={event => setForm({ ...form, amount: event.target.value })} required style={{ padding: '11px', borderRadius: '10px', border: '1px solid #e2e8f0', fontWeight: '400', fontSize: '14px' }} />
+          </label>
+          <label style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '12px', fontWeight: '700', color: '#475569' }}>TANGGAL
+            <input type="date" value={form.transaction_date} onChange={event => setForm({ ...form, transaction_date: event.target.value })} required style={{ padding: '11px', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '14px' }} />
+          </label>
+          <button type="submit" style={{ alignSelf: 'end', minHeight: '42px', background: '#111', color: 'white', border: 'none', borderRadius: '10px', fontWeight: '700', cursor: 'pointer' }}>Simpan Catatan</button>
         </form>
       )}
 

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 
-const emptyForm = { name: '', quantity: 0, unit: 'pcs', min_quantity: 0, cost_price: 0 }
+const emptyForm = { name: '', quantity: '', unit: '', min_quantity: '', cost_price: '' }
 
 export default function StokPage() {
   const [items, setItems] = useState([])
@@ -32,7 +32,9 @@ export default function StokPage() {
 
   const handleSubmit = async event => {
     event.preventDefault()
-    if (!form.name.trim()) return alert('Nama barang wajib diisi.')
+    if (!form.name.trim() || form.quantity === '' || !form.unit.trim() || form.min_quantity === '' || form.cost_price === '') {
+      return alert('Nama barang, jumlah stok, satuan, batas minimum, dan harga beli wajib diisi.')
+    }
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return alert('Sesi login berakhir. Silakan login ulang.')
     const payload = { ...form, quantity: Number(form.quantity), min_quantity: Number(form.min_quantity), cost_price: Number(form.cost_price), updated_at: new Date().toISOString() }
@@ -61,13 +63,23 @@ export default function StokPage() {
         <button onClick={() => showForm ? resetForm() : setShowForm(true)} style={{ background: '#4361EE', color: 'white', padding: '10px 18px', borderRadius: '12px', border: 'none', fontWeight: '700', cursor: 'pointer' }}>{showForm ? 'Batal' : '+ Tambah Stok'}</button>
       </div>
       {showForm && (
-        <form onSubmit={handleSubmit} style={{ background: 'white', padding: '18px', borderRadius: '16px', border: '1px solid #eef2f7', marginTop: '16px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '12px' }}>
-          <input placeholder="Nama barang" value={form.name} onChange={event => setForm({ ...form, name: event.target.value })} required style={{ padding: '11px', borderRadius: '10px', border: '1px solid #e2e8f0' }} />
-          <input type="number" min="0" step="0.1" placeholder="Jumlah" value={form.quantity} onChange={event => setForm({ ...form, quantity: event.target.value })} required style={{ padding: '11px', borderRadius: '10px', border: '1px solid #e2e8f0' }} />
-          <input placeholder="Satuan (liter, pcs)" value={form.unit} onChange={event => setForm({ ...form, unit: event.target.value })} required style={{ padding: '11px', borderRadius: '10px', border: '1px solid #e2e8f0' }} />
-          <input type="number" min="0" step="0.1" placeholder="Batas minimum" value={form.min_quantity} onChange={event => setForm({ ...form, min_quantity: event.target.value })} required style={{ padding: '11px', borderRadius: '10px', border: '1px solid #e2e8f0' }} />
-          <input type="number" min="0" placeholder="Harga beli" value={form.cost_price} onChange={event => setForm({ ...form, cost_price: event.target.value })} required style={{ padding: '11px', borderRadius: '10px', border: '1px solid #e2e8f0' }} />
-          <button type="submit" style={{ background: '#111', color: 'white', border: 'none', borderRadius: '10px', fontWeight: '700', cursor: 'pointer' }}>{editingId ? 'Simpan Perubahan' : 'Simpan Stok'}</button>
+        <form onSubmit={handleSubmit} style={{ background: 'white', padding: '18px', borderRadius: '16px', border: '1px solid #eef2f7', marginTop: '16px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: '14px' }}>
+          <label style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '12px', fontWeight: '700', color: '#475569' }}>NAMA BARANG
+            <input placeholder="Contoh: Pewangi" value={form.name} onChange={event => setForm({ ...form, name: event.target.value })} required style={{ padding: '11px', borderRadius: '10px', border: '1px solid #e2e8f0', fontWeight: '400', fontSize: '14px' }} />
+          </label>
+          <label style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '12px', fontWeight: '700', color: '#475569' }}>JUMLAH STOK SAAT INI
+            <input type="number" min="0" step="0.1" placeholder="Contoh: 50" value={form.quantity} onChange={event => setForm({ ...form, quantity: event.target.value })} required style={{ padding: '11px', borderRadius: '10px', border: '1px solid #e2e8f0', fontWeight: '400', fontSize: '14px' }} />
+          </label>
+          <label style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '12px', fontWeight: '700', color: '#475569' }}>SATUAN
+            <input placeholder="Contoh: liter / pcs / kg" value={form.unit} onChange={event => setForm({ ...form, unit: event.target.value })} required style={{ padding: '11px', borderRadius: '10px', border: '1px solid #e2e8f0', fontWeight: '400', fontSize: '14px' }} />
+          </label>
+          <label style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '12px', fontWeight: '700', color: '#475569' }}>BATAS MINIMUM STOK
+            <input type="number" min="0" step="0.1" placeholder="Contoh: 5" value={form.min_quantity} onChange={event => setForm({ ...form, min_quantity: event.target.value })} required style={{ padding: '11px', borderRadius: '10px', border: '1px solid #e2e8f0', fontWeight: '400', fontSize: '14px' }} />
+          </label>
+          <label style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '12px', fontWeight: '700', color: '#475569' }}>HARGA BELI PER SATUAN
+            <input type="number" min="0" placeholder="Contoh: 50000" value={form.cost_price} onChange={event => setForm({ ...form, cost_price: event.target.value })} required style={{ padding: '11px', borderRadius: '10px', border: '1px solid #e2e8f0', fontWeight: '400', fontSize: '14px' }} />
+          </label>
+          <button type="submit" style={{ alignSelf: 'end', minHeight: '42px', background: '#111', color: 'white', border: 'none', borderRadius: '10px', fontWeight: '700', cursor: 'pointer' }}>{editingId ? 'Simpan Perubahan' : 'Simpan Stok'}</button>
         </form>
       )}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: '14px', marginTop: '20px' }}>
