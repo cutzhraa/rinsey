@@ -172,15 +172,13 @@ export default function TransaksiPage() {
       const nextStatus = orderStatuses[currentIndex + 1]
       if (!nextStatus) return
 
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('orders')
         .update({ status: nextStatus.value })
         .eq('id', order.id)
-        .select('id, status')
 
       if (error) return alert(`Gagal mengubah status ke ${nextStatus.label}: ${error.message}`)
-      if (!data?.length) return alert('Status tidak berubah. Pastikan transaksi ini milik akun yang sedang login dan policy RLS orders sudah aktif.')
-      setOrders(prev => prev.map(item => item.id === order.id ? { ...item, status: data[0].status } : item))
+      setOrders(prev => prev.map(item => item.id === order.id ? { ...item, status: nextStatus.value } : item))
     }
   }
 
@@ -448,16 +446,6 @@ export default function TransaksiPage() {
               <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>
                 📦 {o.services?.name} • {o.weight} {o.services?.unit || 'kg'}
               </div>
-              {o.status !== 'diambil' && (
-                <button
-                  type="button"
-                  onClick={() => handleAdvanceStatus(o)}
-                  title="Pindahkan ke tahap berikutnya"
-                  style={{ marginTop: '8px', background: '#111827', color: 'white', border: 'none', padding: '6px 10px', borderRadius: '8px', fontSize: '11px', fontWeight: '700', cursor: 'pointer' }}
-                >
-                  Lanjut: {orderStatuses[orderStatuses.findIndex(status => status.value === o.status) + 1]?.label || 'Berikutnya'} →
-                </button>
-              )}
             </div>
 
             <div style={{ textAlign: 'right' }}>
@@ -495,6 +483,16 @@ export default function TransaksiPage() {
             {/* ACTION BUTTONS */}
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center', width: '100%', borderTop: '1px solid #f8fafc', paddingTop: '10px', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', gap: '6px' }}>
+                {o.status !== 'diambil' && (
+                  <button
+                    type="button"
+                    onClick={() => handleAdvanceStatus(o)}
+                    title="Pindahkan ke tahap berikutnya"
+                    style={{ background: '#111827', color: 'white', border: 'none', padding: '8px 12px', borderRadius: '10px', fontSize: '12px', fontWeight: '700', cursor: 'pointer' }}
+                  >
+                    Pindahkan ke {orderStatuses[orderStatuses.findIndex(status => status.value === o.status) + 1]?.label || 'Berikutnya'} →
+                  </button>
+                )}
                 <button
                   onClick={() => handleOpenEdit(o)}
                   title="Edit transaksi"
