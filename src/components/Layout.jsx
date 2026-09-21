@@ -9,6 +9,7 @@ export default function Layout({ children }){
   const [user, setUser] = useState(null)
   const [business, setBusiness] = useState(null)
   const [isMobile, setIsMobile] = useState(false)
+  const [isOwner, setIsOwner] = useState(false)
   const location = useLocation()
   const navigate = useNavigate()
 
@@ -31,6 +32,9 @@ export default function Layout({ children }){
       const { data: profile, error: profileError } = await supabase.from('business_profiles').select('business_name').eq('user_id', data.user.id).maybeSingle()
       if (profileError) console.error('Gagal memuat nama laundry:', profileError)
       setBusiness(profile)
+    })
+    supabase.rpc('get_my_business_role').then(({ data }) => {
+      setIsOwner(data?.some(member => member.role === 'owner') || false)
     })
   }, [])
 
@@ -64,6 +68,7 @@ export default function Layout({ children }){
             <NavLink to="/transaksi" style={({isActive})=>({padding:'12px', borderRadius:'12px', background:isActive?'#111':'transparent', color:isActive?'white':'#64748b', textDecoration:'none', fontWeight:'600'})}>Transaksi</NavLink>
             <NavLink to="/keuangan" style={({isActive})=>({padding:'12px', borderRadius:'12px', background:isActive?'#111':'transparent', color:isActive?'white':'#64748b', textDecoration:'none', fontWeight:'600'})}>Keuangan</NavLink>
             <NavLink to="/stok" style={({isActive})=>({padding:'12px', borderRadius:'12px', background:isActive?'#111':'transparent', color:isActive?'white':'#64748b', textDecoration:'none', fontWeight:'600'})}>Stok</NavLink>
+            {isOwner && <NavLink to="/tim" style={({isActive})=>({padding:'12px', borderRadius:'12px', background:isActive?'#111':'transparent', color:isActive?'white':'#64748b', textDecoration:'none', fontWeight:'600'})}>Kelola Tim</NavLink>}
           </nav>
         </div>
       </div>

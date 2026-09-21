@@ -1,5 +1,18 @@
 # React + Vite
 
+## Tim dan role
+
+Migration `supabase/migrations/20260921000000_business_members.sql` membuat
+membership `owner`, `admin`, `kasir`, atau `staff`, lalu meng-backfill pemilik
+bisnis yang sudah ada sebagai `owner`. Akun demo
+`admin@cutzhraa.com` tetap diperlakukan sebagai owner melalui membership ini;
+tidak ada email yang di-hardcode di policy.
+
+Halaman **Kelola Tim** hanya muncul untuk owner. Owner dapat menambahkan email
+akun yang sudah terdaftar melalui RPC `add_business_member_by_email`; email
+undangan untuk akun baru memerlukan Edge Function/service role dan sengaja
+tidak dilakukan dari frontend.
+
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
 Currently, two official plugins are available:
