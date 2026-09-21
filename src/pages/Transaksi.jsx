@@ -172,6 +172,14 @@ export default function TransaksiPage() {
   }
 
   const handleAdvanceStatus = async (order) => {
+    if (role === 'kasir') {
+      const nextKasirStatus = order.status === 'selesai' ? 'diambil' : null
+      if (!nextKasirStatus) return
+      const { error } = await supabase.from('orders').update({ status: nextKasirStatus }).eq('id', order.id)
+      if (error) return alert(`Gagal mengubah status ke Diambil: ${error.message}`)
+      setOrders(prev => prev.map(item => item.id === order.id ? { ...item, status: nextKasirStatus } : item))
+      return
+    }
     const currentIndex = Math.max(orderStatuses.findIndex(status => status.value === order.status), 0)
     const nextStatus = orderStatuses[currentIndex + 1]
     if (!nextStatus) return
@@ -486,14 +494,14 @@ export default function TransaksiPage() {
             {/* ACTION BUTTONS */}
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center', width: '100%', borderTop: '1px solid #f8fafc', paddingTop: '10px', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', gap: '6px' }}>
-                {can(role, 'status') && o.status !== 'diambil' && (
+                {can(role, 'status') && o.status !== 'diambil' && (role !== 'kasir' || o.status === 'selesai') && (
                   <button
                     type="button"
                     onClick={() => handleAdvanceStatus(o)}
                     title="Pindahkan ke tahap berikutnya"
                     style={{ background: '#111827', color: 'white', border: 'none', padding: '8px 12px', borderRadius: '10px', fontSize: '12px', fontWeight: '700', cursor: 'pointer' }}
                   >
-                    Pindahkan ke {orderStatuses[orderStatuses.findIndex(status => status.value === o.status) + 1]?.label || 'Berikutnya'} →
+                    Pindahkan ke {role === 'kasir' ? 'Diambil' : orderStatuses[orderStatuses.findIndex(status => status.value === o.status) + 1]?.label || 'Berikutnya'} →
                   </button>
                 )}
                 {can(role, 'transactionEdit') && <button

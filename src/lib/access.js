@@ -23,7 +23,9 @@ const actionRoles = {
   transactionDelete: ['owner', 'admin'],
   payment: ['owner', 'admin', 'kasir'],
   qris: ['owner', 'admin', 'kasir'],
-  status: ['owner', 'admin', 'kasir', 'staff'],
+  status: ['owner', 'admin', 'staff'],
+  intakeStatus: ['owner', 'admin', 'kasir'],
+  pickupStatus: ['owner', 'admin', 'kasir'],
   inventoryManage: ['owner', 'admin'],
   receipt: ['owner', 'admin', 'kasir'],
 }
