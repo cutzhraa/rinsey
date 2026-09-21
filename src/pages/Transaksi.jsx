@@ -199,9 +199,9 @@ export default function TransaksiPage() {
             >
               ×
             </button>
-            <h2 id="qris-modal-title" style={{ margin: '4px 0 8px', color: '#111827', fontSize: '22px' }}>Scan QRIS</h2>
+            <h2 id="qris-modal-title" style={{ margin: '4px 0 8px', color: '#111827', fontSize: '22px' }}>QRIS Pembayaran Pelanggan</h2>
             <p style={{ margin: '0 0 16px', color: '#64748b', fontSize: '13px' }}>
-              Scan QR ini dari HP lain atau simpan gambarnya untuk dibayar nanti.
+              Minta pelanggan scan QR ini untuk membayar, atau simpan gambarnya untuk dikirim nanti.
             </p>
             <img
               src={qrisPayment.qrUrl}
@@ -326,6 +326,11 @@ export default function TransaksiPage() {
                 <option value="belum">Belum Lunas</option>
                 <option value="lunas">Lunas</option>
               </select>
+              {form.payment_method === 'qris' && (
+                <p style={{ margin: '5px 0 0', fontSize: '11px', color: '#64748b' }}>
+                  QRIS akan ditampilkan kepada pelanggan setelah transaksi dibuat.
+                </p>
+              )}
             </div>
           </div>
 
@@ -381,9 +386,10 @@ export default function TransaksiPage() {
                 {o.payment_method === 'qris' && o.payment_status === 'belum' && (
                   <button
                     onClick={() => triggerMidtransPayment(o)}
+                    title="Tampilkan QRIS agar pelanggan dapat membayar"
                     style={{ background: '#4361EE', color: 'white', border: 'none', padding: '4px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: '700', cursor: 'pointer' }}
                   >
-                    💳 Bayar Midtrans
+                    ▣ Tampilkan QRIS
                   </button>
                 )}
                 <button
