@@ -7,6 +7,8 @@ import PelangganPage from './pages/Pelanggan'
 import TransaksiPage from './pages/Transaksi' // <-- INI YANG TADI LUPA DI-IMPORT!
 import KeuanganPage from './pages/Keuangan'
 import StokPage from './pages/Stok'
+import Register from './pages/Register'
+import Onboarding from './pages/Onboarding'
 import Layout from './components/Layout'
 
 function ProtectedRoute({ session, children }) {
@@ -33,6 +35,8 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<PublicOnlyRoute session={session}><Login /></PublicOnlyRoute>} />
+        <Route path="/register" element={<PublicOnlyRoute session={session}><Register /></PublicOnlyRoute>} />
+        <Route path="/onboarding" element={<ProtectedRoute session={session}><Onboarding /></ProtectedRoute>} />
         <Route path="/" element={<ProtectedRoute session={session}><Layout><Dashboard /></Layout></ProtectedRoute>} />
         <Route path="/pelanggan" element={<ProtectedRoute session={session}><Layout><PelangganPage /></Layout></ProtectedRoute>} />
         <Route path="/transaksi" element={<ProtectedRoute session={session}><Layout><TransaksiPage /></Layout></ProtectedRoute>} />

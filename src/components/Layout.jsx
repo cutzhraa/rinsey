@@ -7,6 +7,7 @@ export default function Layout({ children }){
   const [profileOpen, setProfileOpen] = useState(false)
   const [logoError, setLogoError] = useState(false)
   const [user, setUser] = useState(null)
+  const [business, setBusiness] = useState(null)
   const [isMobile, setIsMobile] = useState(false)
   const location = useLocation()
   const navigate = useNavigate()
@@ -21,12 +22,15 @@ export default function Layout({ children }){
   useEffect(()=>{ if(isMobile) setOpen(false); setProfileOpen(false) }, [location.pathname, isMobile])
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data, error }) => {
+    supabase.auth.getUser().then(async ({ data, error }) => {
       if (error) {
         console.error('Gagal memuat profil pengguna:', error)
         return
       }
       setUser(data.user)
+      const { data: profile, error: profileError } = await supabase.from('business_profiles').select('business_name').eq('user_id', data.user.id).maybeSingle()
+      if (profileError) console.error('Gagal memuat nama laundry:', profileError)
+      setBusiness(profile)
     })
   }, [])
 
@@ -53,7 +57,7 @@ export default function Layout({ children }){
         display:'flex', flexDirection:'column', justifyContent:'space-between'
       }}>
         <div>
-          <div style={{padding:'20px', fontWeight:'900', fontSize:'22px'}}>RINSEY.</div>
+          <div style={{padding:'20px', fontWeight:'900', fontSize:'22px'}}>{business?.business_name || 'RINSEY.'}</div>
           <nav style={{flex:1, padding:'10px', display:'flex', flexDirection:'column', gap:'6px'}}>
             <NavLink to="/" style={({isActive})=>({padding:'12px', borderRadius:'12px', background:isActive?'#111':'transparent', color:isActive?'white':'#64748b', textDecoration:'none', fontWeight:'600'})}>Dashboard</NavLink>
             <NavLink to="/pelanggan" style={({isActive})=>({padding:'12px', borderRadius:'12px', background:isActive?'#111':'transparent', color:isActive?'white':'#64748b', textDecoration:'none', fontWeight:'600'})}>Pelanggan</NavLink>
@@ -88,7 +92,7 @@ export default function Layout({ children }){
               )}
               <div style={{display:'flex', flexDirection:'column', alignItems:'flex-start', gap:'1px', maxWidth:'180px'}}>
                 <span style={{fontSize:'12px', fontWeight:'800', color:'#111827', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
-                  {user?.user_metadata?.full_name || 'Rinsey'}
+                  {business?.business_name || 'Rinsey'}
                 </span>
               </div>
             </button>
@@ -98,7 +102,7 @@ export default function Layout({ children }){
                 style={{position:'absolute', top:'52px', right:0, width:'250px', padding:'8px', background:'white', border:'1px solid #e2e8f0', borderRadius:'14px', boxShadow:'0 12px 30px rgba(15,23,42,0.14)', zIndex:60}}
               >
                 <div style={{padding:'10px 12px', borderBottom:'1px solid #f1f5f9', marginBottom:'6px'}}>
-                  <div style={{fontSize:'12px', fontWeight:'800', color:'#111827'}}>Rinsey</div>
+                  <div style={{fontSize:'12px', fontWeight:'800', color:'#111827'}}>{business?.business_name || 'Rinsey'}</div>
                   <div style={{fontSize:'12px', color:'#64748b', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
                     {user?.email || 'Akun aktif'}
                   </div>

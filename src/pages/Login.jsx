@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { supabase } from '../lib/supabase'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 
 export default function Login() {
   const [email, setEmail] = useState('')
@@ -61,6 +61,9 @@ export default function Login() {
             {loading ? 'Memproses...' : 'Masuk'}
           </button>
         </form>
+        <p style={{textAlign:'center', fontSize:'13px', color:'#64748b', marginTop:'20px'}}>
+          Belum punya akun? <Link to="/register" style={{color:'#4361EE', fontWeight:'700'}}>Daftar gratis</Link>
+        </p>
 
         {/* <p style={{textAlign:'center', fontSize:'12px', color:'#9ca3af', marginTop:'20px'}}>
           Demo: admin@cutzhraa.com / admin123
