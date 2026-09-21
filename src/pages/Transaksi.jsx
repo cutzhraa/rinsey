@@ -31,6 +31,7 @@ export default function TransaksiPage() {
   const [paymentFilter, setPaymentFilter] = useState('semua')
   const [methodFilter, setMethodFilter] = useState('semua')
   const [qrisPayment, setQrisPayment] = useState(null)
+  const [statusHistory, setStatusHistory] = useState(null)
 
   // State Form Transaksi Baru
   const [form, setForm] = useState({
@@ -192,6 +193,16 @@ export default function TransaksiPage() {
       setOrders(prev => prev.map(item => item.id === order.id ? { ...item, status: nextKasirStatus } : item))
       return
     }
+
+    const showStatusHistory = async (order) => {
+      const { data, error } = await supabase
+        .from('order_status_history')
+        .select('id, status, changed_by, created_at')
+        .eq('order_id', order.id)
+        .order('created_at', { ascending: true })
+      if (error) return alert('Gagal memuat riwayat status: ' + error.message)
+      setStatusHistory({ order, items: data || [] })
+    }
     const currentIndex = Math.max(orderStatuses.findIndex(status => status.value === order.status), 0)
     const nextStatus = orderStatuses[currentIndex + 1]
     if (!nextStatus) return
@@ -317,6 +328,22 @@ export default function TransaksiPage() {
             <p style={{ margin: '14px 0 0', color: '#94a3b8', fontSize: '11px' }}>
               Jika tombol download tidak menyimpan otomatis di HP, buka gambarnya lalu tekan lama untuk menyimpan.
             </p>
+          </div>
+        </div>
+      )}
+      {statusHistory && (
+        <div onClick={() => setStatusHistory(null)} style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(15,23,42,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
+          <div onClick={event => event.stopPropagation()} style={{ background: 'white', width: 'min(100%, 430px)', maxHeight: '80vh', overflowY: 'auto', borderRadius: '18px', padding: '20px' }}>
+            <button onClick={() => setStatusHistory(null)} style={{ float: 'right', border: 'none', background: 'transparent', fontSize: '22px', cursor: 'pointer', color: '#64748b' }}>×</button>
+            <h2 style={{ margin: '4px 0 4px', color: '#111827', fontSize: '20px' }}>Riwayat Status</h2>
+            <p style={{ margin: '0 0 18px', color: '#64748b', fontSize: '13px' }}>{statusHistory.order.invoice_no || 'Transaksi'}</p>
+            {statusHistory.items.length === 0 ? <p style={{ color: '#94a3b8' }}>Belum ada riwayat status.</p> : statusHistory.items.map((item, index) => {
+              const status = orderStatuses.find(value => value.value === item.status) || orderStatuses[0]
+              return <div key={item.id} style={{ display: 'flex', gap: '12px', paddingBottom: '14px', marginBottom: '14px', borderBottom: index < statusHistory.items.length - 1 ? '1px solid #f1f5f9' : 'none' }}>
+                <span style={{ background: status.background, color: status.color, padding: '4px 8px', borderRadius: '7px', fontSize: '11px', fontWeight: '800', height: 'fit-content' }}>{status.label}</span>
+                <span style={{ color: '#64748b', fontSize: '12px' }}>{new Date(item.created_at).toLocaleString('id-ID')}</span>
+              </div>
+            })}
           </div>
         </div>
       )}
@@ -561,6 +588,9 @@ export default function TransaksiPage() {
             {/* ACTION BUTTONS */}
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center', width: '100%', borderTop: '1px solid #f8fafc', paddingTop: '10px', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', gap: '6px' }}>
+                <button type="button" onClick={() => showStatusHistory(o)} style={{ background: '#EEF2FF', color: '#4338CA', border: 'none', padding: '8px 12px', borderRadius: '10px', fontSize: '12px', fontWeight: '700', cursor: 'pointer' }}>
+                  Riwayat
+                </button>
                 {can(role, 'status') && o.status !== 'diambil' && (role !== 'kasir' || o.status === 'selesai') && (
                   <button
                     type="button"
