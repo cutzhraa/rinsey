@@ -12,6 +12,12 @@ const orderStatuses = [
   { value: 'diambil', label: 'Diambil', color: '#92400E', background: '#FEF3C7' }
 ]
 
+const getDefaultEstimatedDate = () => {
+  const date = new Date()
+  date.setDate(date.getDate() + 2)
+  return date.toISOString().slice(0, 10)
+}
+
 export default function TransaksiPage() {
   const { role, businessId } = useAccess()
   const [orders, setOrders] = useState([])
@@ -33,7 +39,8 @@ export default function TransaksiPage() {
     weight: 1,
     status: 'masuk',
     payment_status: 'belum',
-    payment_method: 'cash'
+    payment_method: 'cash',
+    estimated_completion_date: getDefaultEstimatedDate()
   })
 
   // Load Data
@@ -53,7 +60,7 @@ export default function TransaksiPage() {
   useEffect(() => { fetchData() }, [])
 
   const resetForm = () => {
-    setForm({ customer_id: '', service_id: '', weight: 1, status: 'masuk', payment_status: 'belum', payment_method: 'cash' })
+    setForm({ customer_id: '', service_id: '', weight: 1, status: 'masuk', payment_status: 'belum', payment_method: 'cash', estimated_completion_date: getDefaultEstimatedDate() })
     setEditingId(null)
     setShowAdd(false)
   }
@@ -66,7 +73,8 @@ export default function TransaksiPage() {
       weight: order.weight || 1,
       status: order.status || 'masuk',
       payment_status: order.payment_status || 'belum',
-      payment_method: order.payment_method || 'cash'
+      payment_method: order.payment_method || 'cash',
+      estimated_completion_date: order.estimated_completion_date || getDefaultEstimatedDate()
     })
     setShowAdd(true)
     window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -127,7 +135,8 @@ export default function TransaksiPage() {
       total_price: calculatedTotal,
       status: form.status,
       payment_status: form.payment_status,
-      payment_method: form.payment_method
+      payment_method: form.payment_method,
+      estimated_completion_date: form.estimated_completion_date || null
     }
 
     const query = editingId
@@ -212,6 +221,7 @@ export default function TransaksiPage() {
       `Metode Bayar: ${o.payment_method?.toUpperCase()}\n` +
       `Total Bayar : Rp ${o.total_price?.toLocaleString('id-ID')}\n` +
       `Status Bayar: ${o.payment_status?.toUpperCase()}\n` +
+      `Estimasi Selesai: ${o.estimated_completion_date ? new Date(`${o.estimated_completion_date}T00:00:00`).toLocaleDateString('id-ID') : '-'}\n` +
       `--------------------------------\n` +
       `Terima kasih telah mempercayakan cucian Anda di Rinsey Laundry! 🧺`
 
@@ -405,6 +415,20 @@ export default function TransaksiPage() {
               </p>
             </div>
 
+            {/* ESTIMASI SELESAI */}
+            <div>
+              <label style={{ fontSize: '12px', fontWeight: '700', color: '#64748b' }}>ESTIMASI SELESAI</label>
+              <input
+                type="date"
+                value={form.estimated_completion_date}
+                onChange={e => setForm({ ...form, estimated_completion_date: e.target.value })}
+                style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #e2e8f0', marginTop: '4px', boxSizing: 'border-box' }}
+              />
+              <p style={{ margin: '5px 0 0', fontSize: '11px', color: '#64748b' }}>
+                Tanggal yang diinformasikan kepada pelanggan.
+              </p>
+            </div>
+
             {/* STATUS BAYAR */}
             <div>
               <label style={{ fontSize: '12px', fontWeight: '700', color: '#64748b' }}>STATUS PEMBAYARAN</label>
@@ -496,6 +520,9 @@ export default function TransaksiPage() {
               </div>
               <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>
                 📦 {o.services?.name} • {o.weight} {o.services?.unit || 'kg'}
+              </div>
+              <div style={{ fontSize: '12px', color: '#64748b', marginTop: '4px' }}>
+                📅 Estimasi selesai: {o.estimated_completion_date ? new Date(`${o.estimated_completion_date}T00:00:00`).toLocaleDateString('id-ID') : 'Belum ditentukan'}
               </div>
             </div>
 
