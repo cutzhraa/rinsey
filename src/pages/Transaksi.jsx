@@ -166,20 +166,20 @@ export default function TransaksiPage() {
     else {
       setOrders(orders.map(item => item.id === o.id ? { ...item, payment_status: nextPayment } : item))
     }
+  }
 
-    const handleAdvanceStatus = async (order) => {
-      const currentIndex = Math.max(orderStatuses.findIndex(status => status.value === order.status), 0)
-      const nextStatus = orderStatuses[currentIndex + 1]
-      if (!nextStatus) return
+  const handleAdvanceStatus = async (order) => {
+    const currentIndex = Math.max(orderStatuses.findIndex(status => status.value === order.status), 0)
+    const nextStatus = orderStatuses[currentIndex + 1]
+    if (!nextStatus) return
 
-      const { error } = await supabase
-        .from('orders')
-        .update({ status: nextStatus.value })
-        .eq('id', order.id)
+    const { error } = await supabase
+      .from('orders')
+      .update({ status: nextStatus.value })
+      .eq('id', order.id)
 
-      if (error) return alert(`Gagal mengubah status ke ${nextStatus.label}: ${error.message}`)
-      setOrders(prev => prev.map(item => item.id === order.id ? { ...item, status: nextStatus.value } : item))
-    }
+    if (error) return alert(`Gagal mengubah status ke ${nextStatus.label}: ${error.message}`)
+    setOrders(prev => prev.map(item => item.id === order.id ? { ...item, status: nextStatus.value } : item))
   }
 
   // Direct Kirim Struk via WhatsApp
