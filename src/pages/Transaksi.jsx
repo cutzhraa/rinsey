@@ -2,6 +2,14 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import axios from 'axios'
 
+const orderStatuses = [
+  { value: 'masuk', label: 'Masuk', color: '#475569', background: '#F1F5F9' },
+  { value: 'dicuci', label: 'Dicuci', color: '#0369A1', background: '#E0F2FE' },
+  { value: 'disetrika', label: 'Disetrika', color: '#7C3AED', background: '#EDE9FE' },
+  { value: 'selesai', label: 'Selesai', color: '#047857', background: '#D1FAE5' },
+  { value: 'diambil', label: 'Diambil', color: '#92400E', background: '#FEF3C7' }
+]
+
 export default function TransaksiPage() {
   const [orders, setOrders] = useState([])
   const [customers, setCustomers] = useState([])
@@ -17,6 +25,7 @@ export default function TransaksiPage() {
     customer_id: '',
     service_id: '',
     weight: 1,
+    status: 'masuk',
     payment_status: 'belum',
     payment_method: 'cash'
   })
@@ -38,7 +47,7 @@ export default function TransaksiPage() {
   useEffect(() => { fetchData() }, [])
 
   const resetForm = () => {
-    setForm({ customer_id: '', service_id: '', weight: 1, payment_status: 'belum', payment_method: 'cash' })
+    setForm({ customer_id: '', service_id: '', weight: 1, status: 'masuk', payment_status: 'belum', payment_method: 'cash' })
     setEditingId(null)
     setShowAdd(false)
   }
@@ -49,6 +58,7 @@ export default function TransaksiPage() {
       customer_id: order.customer_id || '',
       service_id: order.service_id || '',
       weight: order.weight || 1,
+      status: order.status || 'masuk',
       payment_status: order.payment_status || 'belum',
       payment_method: order.payment_method || 'cash'
     })
@@ -109,7 +119,7 @@ export default function TransaksiPage() {
       service_id: form.service_id,
       weight: Number(form.weight),
       total_price: calculatedTotal,
-      status: 'masuk',
+      status: form.status,
       payment_status: form.payment_status,
       payment_method: form.payment_method
     }
@@ -155,6 +165,16 @@ export default function TransaksiPage() {
     if (error) alert(error.message)
     else {
       setOrders(orders.map(item => item.id === o.id ? { ...item, payment_status: nextPayment } : item))
+    }
+
+    const handleAdvanceStatus = async (order) => {
+      const currentIndex = orderStatuses.findIndex(status => status.value === order.status)
+      const nextStatus = orderStatuses[currentIndex + 1]
+      if (!nextStatus) return
+
+      const { error } = await supabase.from('orders').update({ status: nextStatus.value }).eq('id', order.id)
+      if (error) return alert('Gagal mengubah status: ' + error.message)
+      setOrders(prev => prev.map(item => item.id === order.id ? { ...item, status: nextStatus.value } : item))
     }
   }
 
@@ -342,6 +362,21 @@ export default function TransaksiPage() {
               </select>
             </div>
 
+            {/* STATUS PESANAN */}
+            <div>
+              <label style={{ fontSize: '12px', fontWeight: '700', color: '#64748b' }}>STATUS PESANAN</label>
+              <select
+                value={form.status}
+                onChange={e => setForm({ ...form, status: e.target.value })}
+                style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #e2e8f0', marginTop: '4px' }}
+              >
+                {orderStatuses.map(status => <option key={status.value} value={status.value}>{status.label}</option>)}
+              </select>
+              <p style={{ margin: '5px 0 0', fontSize: '11px', color: '#64748b' }}>
+                Alur: Masuk → Dicuci → Disetrika → Selesai → Diambil
+              </p>
+            </div>
+
             {/* STATUS BAYAR */}
             <div>
               <label style={{ fontSize: '12px', fontWeight: '700', color: '#64748b' }}>STATUS PEMBAYARAN</label>
@@ -396,6 +431,10 @@ export default function TransaksiPage() {
                 <span style={{ background: '#F1F5F9', color: '#475569', padding: '2px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: '800', textTransform: 'uppercase' }}>
                   {o.payment_method || 'CASH'}
                 </span>
+                {(() => {
+                  const status = orderStatuses.find(item => item.value === o.status) || orderStatuses[0]
+                  return <span style={{ background: status.background, color: status.color, padding: '2px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: '800', textTransform: 'uppercase' }}>{status.label}</span>
+                })()}
               </div>
               <div style={{ fontSize: '14px', fontWeight: '700', color: '#334155', marginTop: '4px' }}>
                 👤 {o.customers?.name || 'Pelanggan Umum'}
@@ -403,6 +442,15 @@ export default function TransaksiPage() {
               <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>
                 📦 {o.services?.name} • {o.weight} {o.services?.unit || 'kg'}
               </div>
+              {o.status !== 'diambil' && (
+                <button
+                  onClick={() => handleAdvanceStatus(o)}
+                  title="Pindahkan ke tahap berikutnya"
+                  style={{ marginTop: '8px', background: '#111827', color: 'white', border: 'none', padding: '6px 10px', borderRadius: '8px', fontSize: '11px', fontWeight: '700', cursor: 'pointer' }}
+                >
+                  Lanjut: {orderStatuses[orderStatuses.findIndex(status => status.value === o.status) + 1]?.label || 'Berikutnya'} →
+                </button>
+              )}
             </div>
 
             <div style={{ textAlign: 'right' }}>
