@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAccess } from '../components/Layout'
+import { can } from '../lib/access'
 
 export default function PelangganPage() {
-  const { businessId } = useAccess()
+  const { businessId, role } = useAccess()
   const [list, setList] = useState([])
   const [orderStatsMap, setOrderStatsMap] = useState({})
   const [search, setSearch] = useState('')
@@ -237,13 +238,13 @@ export default function PelangganPage() {
                       >
                         ✏️
                       </button>
-                      <button
+                      {can(role, 'customerDelete') && <button
                         onClick={() => handleDelete(c.id)}
                         title="Hapus Data"
                         style={{ border: 'none', background: '#f8fafc', width: '32px', height: '32px', borderRadius: '8px', cursor: 'pointer', color: '#ef4444', fontWeight: '700' }}
                       >
                         ✕
-                      </button>
+                      </button>}
                     </div>
                   </div>
 

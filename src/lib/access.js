@@ -17,7 +17,7 @@ const routeRoles = {
 const actionRoles = {
   customerCreate: ['owner', 'admin', 'kasir'],
   customerEdit: ['owner', 'admin', 'kasir'],
-  customerDelete: ['owner', 'admin', 'kasir'],
+  customerDelete: ['owner', 'admin'],
   transactionCreate: ['owner', 'admin', 'kasir'],
   transactionEdit: ['owner', 'admin', 'kasir'],
   transactionDelete: ['owner', 'admin'],
