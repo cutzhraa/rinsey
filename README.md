@@ -1,29 +1,104 @@
-# React + Vite
+# Rinsey
 
-## Tim dan role
+Rinsey adalah aplikasi manajemen laundry untuk membantu operasional bisnis
+tetap rapi dalam satu tempat. Kelola pelanggan, pesanan, pembayaran, stok,
+layanan, dan anggota tim melalui dashboard yang sederhana.
 
-Migration `supabase/migrations/20260921000000_business_members.sql` membuat
-membership `owner`, `admin`, `kasir`, atau `staff`, lalu meng-backfill pemilik
-bisnis yang sudah ada sebagai `owner`. Akun demo
-`admin@cutzhraa.com` tetap diperlakukan sebagai owner melalui membership ini;
-tidak ada email yang di-hardcode di policy.
+## Fitur
 
-Halaman **Kelola Tim** hanya muncul untuk owner. Owner dapat menambahkan email
-akun yang sudah terdaftar melalui RPC `add_business_member_by_email`; email
-undangan untuk akun baru memerlukan Edge Function/service role dan sengaja
-tidak dilakukan dari frontend.
+- Dashboard ringkasan operasional dan keuangan.
+- Manajemen pelanggan dan riwayat transaksi.
+- Pelacakan status pesanan laundry.
+- Pencatatan pemasukan dan pengeluaran.
+- Manajemen stok.
+- Pengaturan layanan dan harga.
+- Dukungan banyak anggota tim dengan role `owner`, `admin`, `kasir`, dan
+  `staff`.
+- Autentikasi dan penyimpanan data menggunakan Supabase.
+- Pembayaran online melalui integrasi Midtrans.
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+## Teknologi
 
-Currently, two official plugins are available:
+- React 19
+- Vite
+- React Router
+- Supabase (Auth, PostgreSQL, dan Row Level Security)
+- Express
+- Midtrans
+- Recharts
+- Lucide React
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Menjalankan secara lokal
 
-## React Compiler
+### Prasyarat
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- Node.js 20 atau versi yang lebih baru
+- npm
+- Project Supabase
 
-## Expanding the ESLint configuration
+### Instalasi
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+```bash
+git clone https://github.com/cutzhraa/rinsey.git
+cd rinsey
+npm install
+```
+
+Buat file `.env` di root project, lalu isi variabel berikut:
+
+```env
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_ANON_KEY=your-supabase-anon-key
+```
+
+Jalankan aplikasi dalam mode development:
+
+```bash
+npm run dev
+```
+
+Aplikasi tersedia di `http://localhost:5173`.
+
+## Database Supabase
+
+Migration database berada di [`supabase/migrations`](./supabase/migrations).
+Jalankan migration tersebut pada project Supabase sebelum menggunakan fitur
+aplikasi yang membutuhkan data pelanggan, transaksi, keuangan, stok, atau
+anggota tim.
+
+## Perintah yang tersedia
+
+| Perintah | Kegunaan |
+| --- | --- |
+| `npm run dev` | Menjalankan server development Vite |
+| `npm run build` | Membuat build production |
+| `npm run preview` | Meninjau build production secara lokal |
+| `npm run lint` | Menjalankan ESLint |
+
+## Struktur project
+
+```text
+src/
+├── components/       Komponen UI bersama
+├── lib/              Konfigurasi Supabase dan helper akses
+└── pages/            Halaman aplikasi
+supabase/migrations/  Struktur dan kebijakan database
+server/               API server untuk kebutuhan backend
+api/                  Endpoint serverless
+```
+
+## Deployment
+
+Build aplikasi dengan:
+
+```bash
+npm run build
+```
+
+Project ini dapat dideploy ke platform yang mendukung aplikasi Vite, seperti
+Vercel. Pastikan environment variable Supabase sudah ditambahkan pada
+konfigurasi project deployment.
+
+## Lisensi
+
+Lisensi project belum ditentukan.
